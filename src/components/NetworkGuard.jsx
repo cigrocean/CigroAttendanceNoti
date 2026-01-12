@@ -29,15 +29,15 @@ const getDistanceFromLatLonInMeters = (lat1, lon1, lat2, lon2) => {
 };
 
 const Layout = ({ children }) => (
-  <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
+  <div className="fixed inset-0 z-[9999] bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
     <div 
-      className="bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+      className="bg-card text-card-foreground shadow-2xl animate-in fade-in zoom-in-95 duration-200"
       style={{ 
         boxSizing: 'border-box',
         width: '100%',
         maxWidth: '320px',
         borderRadius: '24px',
-        border: '1px solid rgba(0,0,0,0.1)',
+        border: '1px solid hsl(var(--border))',
         overflow: 'hidden',
         padding: '32px 24px' 
       }} 
@@ -173,8 +173,8 @@ const NetworkGuard = ({ children }) => {
       return (
           <Layout>
             <div className="text-center">
-              <div className="w-8 h-8 border-2 border-slate-100 border-t-blue-600 rounded-full animate-spin mx-auto" style={{ marginBottom: '16px' }} />
-              <p className="text-slate-600 text-sm font-medium">{t('verifyingNetwork')}</p>
+              <div className="w-8 h-8 border-2 border-slate-200 dark:border-slate-700 border-t-blue-600 dark:border-t-blue-500 rounded-full animate-spin mx-auto" style={{ marginBottom: '16px' }} />
+              <p className="text-muted-foreground text-sm font-medium">{t('verifyingNetwork')}</p>
             </div>
           </Layout>
       );
@@ -188,13 +188,13 @@ const NetworkGuard = ({ children }) => {
                <Lock className="w-5 h-5" />
             </div>
             
-            <h2 className="text-lg font-bold text-slate-800" style={{ marginBottom: '8px' }}>{t('newDeviceDetected')}</h2>
-             <p className="text-xs text-slate-500 leading-relaxed" style={{ marginBottom: '24px' }}>
+            <h2 className="text-lg font-bold text-foreground" style={{ marginBottom: '8px' }}>{t('newDeviceDetected')}</h2>
+             <p className="text-xs text-muted-foreground leading-relaxed" style={{ marginBottom: '24px' }}>
                 {t('oneTimeAuthMessage')}
              </p>
 
               <div 
-                className="inline-block bg-slate-50 px-3 py-1.5 rounded-full text-[11px] font-mono text-slate-500 border border-slate-200"
+                className="inline-block bg-muted px-3 py-1.5 rounded-full text-[11px] font-mono text-muted-foreground border border-input"
                 style={{ marginBottom: '24px' }}
               >
                 {currentIp}
@@ -202,23 +202,23 @@ const NetworkGuard = ({ children }) => {
 
              <form onSubmit={handlePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                  <div style={{ textAlign: 'left', marginBottom: '4px' }}>
-                   <p style={{ fontSize: '12px', color: '#64748b', lineHeight: '1.4', marginBottom: '8px' }}>
-                     {t('enterPassword')}
-                   </p>
-                   <input 
-                     type="password" 
-                     value={password}
-                     onChange={(e) => { setPassword(e.target.value); setPasswordError(false); }}
-                     className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 px-3 py-3 text-slate-900 placeholder:text-slate-400 outline-none transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                     placeholder={t('passwordPlaceholder')}
-                    autoFocus
-                    disabled={isAuthorizing}
-                    style={{ 
-                      boxSizing: 'border-box',
-                      borderRadius: '12px',
-                      width: '100%'
-                    }} 
-                  />
+                    <p style={{ fontSize: '12px', lineHeight: '1.4', marginBottom: '8px' }} className="text-muted-foreground">
+                      {t('enterPassword')}
+                    </p>
+                    <input 
+                      type="password" 
+                      value={password}
+                      onChange={(e) => { setPassword(e.target.value); setPasswordError(false); }}
+                      className="w-full bg-background border border-input focus:border-primary focus:ring-1 focus:ring-primary px-3 py-3 text-foreground placeholder:text-muted-foreground outline-none transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      placeholder={t('passwordPlaceholder')}
+                     autoFocus
+                     disabled={isAuthorizing}
+                     style={{ 
+                       boxSizing: 'border-box',
+                       borderRadius: '12px',
+                       width: '100%'
+                     }} 
+                   />
                 </div>
                 
                 {passwordError && (
@@ -254,28 +254,28 @@ const NetworkGuard = ({ children }) => {
   return (
       <Layout>
         <div className="text-center">
-            <div className="w-10 h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto" style={{ marginBottom: '16px' }}>
+            <div className="w-10 h-10 bg-destructive/10 text-destructive rounded-full flex items-center justify-center mx-auto" style={{ marginBottom: '16px' }}>
                 <ShieldAlert className="w-5 h-5" />
             </div>
-            <h1 className="text-lg font-bold text-slate-800" style={{ marginBottom: '8px' }}>{t('accessDenied')}</h1>
-            <p className="text-xs text-slate-500 leading-relaxed" style={{ marginBottom: '24px' }}>
+            <h1 className="text-lg font-bold text-foreground" style={{ marginBottom: '8px' }}>{t('accessDenied')}</h1>
+            <p className="text-xs text-muted-foreground leading-relaxed" style={{ marginBottom: '24px' }}>
                 {status === 'unauthorized_location' 
                     ? t('unauthorizedLocationMessage')
                     : t('unauthorizedDefaultMessage')}
             </p>
 
             <div 
-              className="bg-slate-50 p-3 text-left border border-slate-100"
+              className="bg-muted p-3 text-left border border-border"
               style={{ borderRadius: '12px', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}
             >
                 <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500 font-medium">{t('status')}</span>
-                    <span className="text-red-600 font-bold bg-white px-1.5 py-0.5 rounded border border-slate-100">{t(status)}</span>
+                    <span className="text-muted-foreground font-medium">{t('status')}</span>
+                    <span className="text-destructive font-bold bg-background px-1.5 py-0.5 rounded border border-border">{t(status)}</span>
                 </div>
                 {locationStatus && (
-                    <div className="flex justify-between items-center text-xs border-t border-slate-200 pt-2">
-                        <span className="text-slate-500 font-medium">{t('distance')}</span>
-                        <span className={`font-mono font-bold ${locationStatus.distance > LOCATION_RADIUS ? 'text-red-500' : 'text-emerald-600'}`}>
+                    <div className="flex justify-between items-center text-xs border-t border-border pt-2">
+                        <span className="text-muted-foreground font-medium">{t('distance')}</span>
+                        <span className={`font-mono font-bold ${locationStatus.distance > LOCATION_RADIUS ? 'text-destructive' : 'text-green-600 dark:text-green-400'}`}>
                             {locationStatus.distance?.toFixed(0)}m / {LOCATION_RADIUS}m
                         </span>
                     </div>
@@ -284,7 +284,7 @@ const NetworkGuard = ({ children }) => {
 
             <button 
                 onClick={() => window.location.reload()}
-                className="w-full text-xs font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors py-3 rounded"
+                className="w-full text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors py-3 rounded"
                 style={{ 
                   boxSizing: 'border-box',
                   borderRadius: '12px',

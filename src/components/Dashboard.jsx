@@ -180,11 +180,14 @@ export default function Dashboard() {
                     return;
                 }
                 
+                /*
+                // Handled by Google Apps Script server-side to prevent duplicates
                 await fetch(webhookUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: email, checkInTime: checkInTime.toISOString() })
                 });
+                */
                 
                 localStorage.setItem(notifiedKey, 'true');
                 toast.success("Checkout notification sent to Flow Bot!");
@@ -203,7 +206,7 @@ export default function Dashboard() {
 
   if (!email) {
       return (
-          <div className="flex min-h-screen items-center justify-center p-4 bg-slate-50">
+          <div className="flex min-h-screen items-center justify-center p-4 bg-background">
               <Card className="w-full max-w-md">
                   <CardHeader>
                       <CardTitle>Welcome</CardTitle>
@@ -234,11 +237,11 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 flex items-center justify-center relative">
+    <div className="min-h-screen bg-background p-4 md:p-8 flex items-center justify-center relative">
       {/* Loading Overlay */}
       {isLoading && (
         <div className="fixed inset-0 bg-background/95 backdrop-blur-xl z-50 flex flex-col items-center justify-center animate-in fade-in duration-200">
-           <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
+           <Loader2 className="h-16 w-16 animate-spin text-blue-600 dark:text-blue-500 mb-4" />
            <p className="text-muted-foreground font-medium animate-pulse">Syncing with cloud...</p>
         </div>
       )}
@@ -257,10 +260,10 @@ export default function Dashboard() {
         <CardContent className="space-y-8 pt-6">
           {/* Main Status Area */}
           <div className="text-center space-y-2">
-             <div className="text-6xl font-black tracking-widest text-slate-800 tabular-nums">
+             <div className="text-6xl font-black tracking-widest text-foreground tabular-nums">
                  {format(currentTime, 'HH:mm')}
              </div>
-             <div className="text-sm font-medium text-slate-500 uppercase tracking-widest">Current Time</div>
+             <div className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Current Time</div>
           </div>
 
           {!checkInTime ? (
@@ -301,14 +304,14 @@ export default function Dashboard() {
                             </DialogDescription>
                         </DialogHeader>
                         <DialogFooter>
-                            <Button onClick={handleNowCheckIn}>Confirm</Button>
+                            <Button onClick={handleNowCheckIn} className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700">Confirm</Button>
                         </DialogFooter>
                     </DialogContent>
                   </Dialog>
 
-                  <div className="w-full pt-4 border-t border-slate-100">
+                  <div className="w-full pt-4 border-t border-border">
                       <details className="group cursor-pointer">
-                          <summary className="text-xs font-medium text-slate-400 uppercase tracking-widest text-center hover:text-slate-600 transition-colors list-none">
+                          <summary className="text-xs font-medium text-muted-foreground uppercase tracking-widest text-center hover:text-foreground transition-colors list-none">
                               Use Manual Entry
                           </summary>
                           <div className="mt-4 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2">
@@ -326,7 +329,7 @@ export default function Dashboard() {
                                     disabled={currentTime.getHours() >= OFFICE_END_LIMIT}
                                     >Set</Button>
                               </div>
-                              <p className="text-[10px] text-center text-slate-400">
+                              <p className="text-[10px] text-center text-muted-foreground">
                                 {currentTime.getHours() >= OFFICE_END_LIMIT 
                                     ? `Check-in closed for the day (after ${OFFICE_END_LIMIT}:00)`
                                     : `Useful for late check-ins (after ${OFFICE_START_LIMIT}:00)`}
@@ -343,7 +346,7 @@ export default function Dashboard() {
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button onClick={confirmManualCheckIn}>Confirm</Button>
+                        <Button onClick={confirmManualCheckIn} className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700">Confirm</Button>
                     </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -351,19 +354,19 @@ export default function Dashboard() {
         </div>
           ) : (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-                  <div className="bg-green-50 border border-green-100 rounded-2xl p-6 text-center space-y-4">
-                      <div className="flex items-center justify-center text-green-700 space-x-2">
+                  <div className="bg-green-500/10 dark:bg-green-500/20 border border-green-500/20 dark:border-green-500/30 rounded-2xl p-6 text-center space-y-4">
+                      <div className="flex items-center justify-center text-green-600 dark:text-green-400 space-x-2">
                           <CheckCircle className="w-5 h-5" />
                           <span className="font-semibold">Checked In</span>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                           <div>
-                              <div className="text-xs text-green-600/70 font-medium uppercase">Start</div>
-                              <div className="text-xl font-bold text-green-800">{format(checkInTime, 'HH:mm')}</div>
+                              <div className="text-xs text-green-600/70 dark:text-green-400/70 font-medium uppercase">Start</div>
+                              <div className="text-xl font-bold text-green-700 dark:text-green-300">{format(checkInTime, 'HH:mm')}</div>
                           </div>
                           <div>
-                              <div className="text-xs text-green-600/70 font-medium uppercase">Finish</div>
-                              <div className="text-xl font-bold text-green-800">
+                              <div className="text-xs text-green-600/70 dark:text-green-400/70 font-medium uppercase">Finish</div>
+                              <div className="text-xl font-bold text-green-700 dark:text-green-300">
                                 {endTime ? format(endTime, 'HH:mm') : '--:--'}
                               </div>
                           </div>
@@ -372,19 +375,19 @@ export default function Dashboard() {
                   
                   {/* Progress Bar */}
                   <div className="space-y-2">
-                      <div className="flex justify-between text-xs font-medium text-slate-500">
+                      <div className="flex justify-between text-xs font-medium text-muted-foreground">
                           <span>Progress</span>
                           <span>{Math.round(progress)}%</span>
                       </div>
-                      <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                           <div 
-                            className="h-full bg-blue-600 transition-all duration-1000 ease-out" 
+                            className="h-full bg-blue-600 dark:bg-blue-500 transition-all duration-1000 ease-out" 
                             style={{ width: `${progress}%` }}
                           />
                       </div>
                   </div>
 
-                  <Button variant="outline" className="w-full text-red-500 hover:text-red-700 hover:bg-red-50 border-red-100" onClick={handleClearCheckIn}>
+                  <Button variant="outline" className="w-full text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 border-red-200 dark:border-red-800" onClick={handleClearCheckIn}>
                       <LogOut className="w-4 h-4 mr-2" />
                       Cancel / Reset Check-in
                   </Button>
