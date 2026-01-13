@@ -73,7 +73,7 @@ export default function Dashboard() {
       setEmail('');
       setWelcomeEmail('');
       setCheckInTime(null);
-      setCheckInTime(null);
+      setLogoutConfirmOpen(false); // Reset dialog state
       toast.info("Logged out successfully");
   };
 
