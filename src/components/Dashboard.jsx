@@ -287,11 +287,11 @@ export default function Dashboard() {
                       </div>
                       <Button 
                         onClick={handleLogin} 
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-14 text-lg rounded-xl shadow-lg shadow-blue-900/10 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:grayscale"
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold h-12 text-base rounded-xl shadow-lg shadow-blue-900/10 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:grayscale"
                         disabled={!welcomeEmail.trim() || isLoading}
                       >
-                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
-                        {isLoading ? "Signing In..." : "Get Started"}
+                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                        {isLoading ? "Signing In..." : "Sign In"}
                       </Button>
                   </CardContent>
               </Card>
