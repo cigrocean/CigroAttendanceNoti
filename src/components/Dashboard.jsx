@@ -24,6 +24,7 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [manualConfirmOpen, setManualConfirmOpen] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   
   const t = (key) => getTranslation(key);
 
@@ -138,13 +139,16 @@ export default function Dashboard() {
     attemptCheckIn(new Date());
   };
   
-  const handleClearCheckIn = async () => {
-      if (!confirm("Are you sure? This will delete the record from Google Sheets.")) return;
-      
+  const handleClearCheckIn = () => {
+    setResetConfirmOpen(true);
+  };
+
+  const confirmClearCheckIn = async () => {
       setIsLoading(true);
       try {
           await deleteTodayAttendance(email);
           setCheckInTime(null);
+          setResetConfirmOpen(false);
           toast.success("Check-in cleared and deleted from cloud");
       } catch (e) {
           toast.error("Failed to delete from cloud. Please try again.");
@@ -462,6 +466,27 @@ export default function Dashboard() {
                         <Button onClick={handleLogout} disabled={isLoading} className="bg-red-600 hover:bg-red-700 text-white">
                             {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <LogOut className="w-4 h-4 mr-2" />}
                             Sign Out
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              {/* Reset Confirmation Dialog */}
+              <Dialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
+                <DialogContent className="!bg-white dark:!bg-slate-950 text-slate-900 dark:text-slate-50 border-slate-200 dark:border-slate-800 sm:max-w-md z-[100] shadow-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Cancel / Reset Check-in</DialogTitle>
+                        <DialogDescription>
+                            Are you sure? This will delete the record from Google Sheets.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setResetConfirmOpen(false)} disabled={isLoading}>
+                            Cancel
+                        </Button>
+                        <Button onClick={confirmClearCheckIn} disabled={isLoading} className="bg-red-600 hover:bg-red-700 text-white">
+                            {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <AlertTriangle className="w-4 h-4 mr-2" />}
+                            Delete Record
                         </Button>
                     </DialogFooter>
                 </DialogContent>
