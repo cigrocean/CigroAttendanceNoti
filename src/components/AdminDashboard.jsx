@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, RefreshCw } from 'lucide-react';
 import { getAllAttendance } from '@/services/googleSheets';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, addHours } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
 export default function AdminDashboard() {
@@ -65,19 +65,23 @@ export default function AdminDashboard() {
                     <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
                       <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Email</th>
                       <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Check In Time</th>
+                      <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Est. End Time</th>
                       <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Date</th>
                     </tr>
                   </thead>
                   <tbody className="[&_tr:last-child]:border-0">
                     {data.length === 0 ? (
                         <tr>
-                            <td colSpan={3} className="p-4 text-center text-muted-foreground">No records found</td>
+                            <td colSpan={4} className="p-4 text-center text-muted-foreground">No records found</td>
                         </tr>
                     ) : (
                         data.map((row, i) => (
                         <tr key={i} className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
                             <td className="p-4 align-middle font-medium">{row.email}</td>
                             <td className="p-4 align-middle">{row.checkInTime ? format(parseISO(row.checkInTime), 'HH:mm:ss') : '-'}</td>
+                            <td className="p-4 align-middle text-muted-foreground">
+                                {row.checkInTime ? format(addHours(parseISO(row.checkInTime), 9), 'HH:mm:ss') : '-'}
+                            </td>
                             <td className="p-4 align-middle">{row.dateStr}</td>
                         </tr>
                         ))
