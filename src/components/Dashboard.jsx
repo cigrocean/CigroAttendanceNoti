@@ -99,6 +99,13 @@ export default function Dashboard() {
 
   const handleLogout = () => {
       localStorage.removeItem('cigr_email');
+      
+      // Clear all attendance cache
+      const today = new Date().toISOString().split('T')[0];
+      const cacheKey = `cigro_attendance_${email}_${today}`;
+      localStorage.removeItem(cacheKey);
+      localStorage.removeItem('cigro_all_records');
+      
       setEmail('');
       setWelcomeEmail('');
       setCheckInTime(null);
