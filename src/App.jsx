@@ -16,7 +16,7 @@ function App() {
              <Route path="/records" element={<AdminDashboard />} />
           </Routes>
         </BrowserRouter>
-        <Toaster />
+        <Toaster duration={5000} closeButton richColors />
       </NetworkGuard>
     </LanguageProvider>
   );

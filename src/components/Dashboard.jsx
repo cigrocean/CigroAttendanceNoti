@@ -100,6 +100,27 @@ export default function Dashboard() {
     return end;
   };
 
+  const notifyCheckIn = async (email, date) => {
+    const webhookUrl = import.meta.env.VITE_MS_FLOW_WEBHOOK;
+    if (!webhookUrl) return;
+
+    try {
+        await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                email: email, 
+                checkInTime: date.toISOString(),
+                type: 'check-in' 
+            })
+        });
+        // We don't show toast for this to avoid clutter, just log it
+        console.log("Check-in notification sent");
+    } catch (e) {
+        console.error("Failed to send check-in notification", e);
+    }
+  };
+
   const attemptCheckIn = async (date) => {
     const hour = date.getHours();
     
@@ -115,6 +136,9 @@ export default function Dashboard() {
         await logAttendance(email, date);
         setCheckInTime(date);
         toast.success(`Checked in at ${format(date, 'HH:mm')}`);
+        
+        // Fire and forget notification
+        notifyCheckIn(email, date);
     } catch (e) {
         toast.error("Failed to save check-in. Please try again.");
     } finally {
@@ -124,11 +148,6 @@ export default function Dashboard() {
 
   const handleManualCheckInTrigger = () => {
     if (!manualTime) return;
-    const [h, m] = manualTime.split(':').map(Number);
-    
-    // Manual Check-in allows late check-ins (after 10 AM), 
-    // but still blocked by the hard limit check in attemptCheckIn (7 PM)
-    
     setManualConfirmOpen(true);
   };
   
