@@ -32,6 +32,20 @@ export const getFromCache = (key) => {
   }
 };
 
+export const clearAppCache = () => {
+  try {
+    Object.keys(localStorage).forEach(key => {
+      // Remove all keys starting with 'cigro_' EXCEPT settings if any (none yet specific to user prefs)
+      if (key.startsWith('cigro_')) {
+        localStorage.removeItem(key);
+      }
+    });
+    console.log('🧹 App cache cleared');
+  } catch (e) {
+    console.warn('Failed to clear app cache', e);
+  }
+};
+
 const getAccessToken = async () => {
   const refreshToken = import.meta.env.VITE_GOOGLE_REFRESH_TOKEN;
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;

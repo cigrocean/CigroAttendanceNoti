@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { logAttendance, getTodayAttendance, deleteTodayAttendance, getAttendanceSheetUrl } from '@/services/googleSheets';
+import { logAttendance, getTodayAttendance, deleteTodayAttendance, getAttendanceSheetUrl, clearAppCache } from '@/services/googleSheets';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
@@ -100,11 +100,8 @@ export default function Dashboard() {
   const handleLogout = () => {
       localStorage.removeItem('cigr_email');
       
-      // Clear all attendance cache
-      const today = new Date().toISOString().split('T')[0];
-      const cacheKey = `cigro_attendance_${email}_${today}`;
-      localStorage.removeItem(cacheKey);
-      localStorage.removeItem('cigro_all_records');
+      // Nuclear cleanup to ensure fresh state
+      clearAppCache();
       
       setEmail('');
       setWelcomeEmail('');
