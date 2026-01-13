@@ -1,6 +1,37 @@
 // Google Sheets Helper
 const SHEET_ID = import.meta.env.VITE_GOOGLE_SHEET_ID;
 
+// Cache Keys
+export const CACHE_KEYS = {
+  NETWORKS: 'cigro_networks',
+  ATTENDANCE: 'cigro_attendance',
+  ALL_RECORDS: 'cigro_all_records'
+};
+
+// Cache Helpers
+export const saveToCache = (key, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify({
+      timestamp: Date.now(),
+      data
+    }));
+  } catch (e) {
+    console.warn('Failed to save to cache', e);
+  }
+};
+
+export const getFromCache = (key) => {
+  try {
+    const item = localStorage.getItem(key);
+    if (!item) return null;
+    const parsed = JSON.parse(item);
+    return parsed.data;
+  } catch (e) {
+    console.warn('Failed to get from cache', e);
+    return null;
+  }
+};
+
 const getAccessToken = async () => {
   const refreshToken = import.meta.env.VITE_GOOGLE_REFRESH_TOKEN;
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -104,6 +135,13 @@ const ensureNetworksSheet = async (accessToken) => {
 };
 
 export const fetchAuthorizedNetworks = async () => {
+  // Try cache first
+  const cached = getFromCache(CACHE_KEYS.NETWORKS);
+  if (cached) {
+    console.log('📦 Using cached networks');
+    return cached;
+  }
+
   try {
     const accessToken = await getAccessToken();
     if (!accessToken) return []; // Fail silently if no token (e.g. not configured)
@@ -129,7 +167,12 @@ export const fetchAuthorizedNetworks = async () => {
     if (!data.values || data.values.length <= 1) return []; // Header only
 
     // Return simple array of IPs (skip header)
-    return data.values.slice(1).map(row => row[0]).filter(ip => ip);
+    const networks = data.values.slice(1).map(row => row[0]).filter(ip => ip);
+    
+    // Save to cache
+    saveToCache(CACHE_KEYS.NETWORKS, networks);
+    
+    return networks;
   } catch (e) {
     console.warn("Failed to fetch authorized networks (sheet might not exist yet):", e);
     return [];
@@ -260,6 +303,12 @@ export const logAttendance = async (email, checkInTime) => {
             body: JSON.stringify({ values }),
           }
         );
+        
+        // Invalidate relevant caches
+        const cacheKey = `${CACHE_KEYS.ATTENDANCE}_${email}_${dateStr}`;
+        localStorage.removeItem(cacheKey);
+        localStorage.removeItem(CACHE_KEYS.ALL_RECORDS);
+        
         return true;
     } catch (e) {
         console.error("Failed to log attendance:", e);
@@ -267,7 +316,19 @@ export const logAttendance = async (email, checkInTime) => {
     }
 };
 
-export const getTodayAttendance = async (email) => {
+export const getTodayAttendance = async (email, skipCache = false) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const cacheKey = `${CACHE_KEYS.ATTENDANCE}_${email}_${todayStr}`;
+    
+    // Try cache first (unless skipped)
+    if (!skipCache) {
+        const cached = getFromCache(cacheKey);
+        if (cached) {
+            console.log('📦 Using cached attendance');
+            return new Date(cached);
+        }
+    }
+
     try {
         const accessToken = await getAccessToken();
         if (!accessToken) return null;
@@ -289,12 +350,13 @@ export const getTodayAttendance = async (email) => {
         const data = await response.json();
         if (!data.values || data.values.length <= 1) return null;
         
-        const todayStr = new Date().toISOString().split('T')[0];
-        
         const entry = data.values.find(row => row[0] === email && row[2] === todayStr);
         
         if (entry) {
-            return new Date(entry[1]);
+            const attendanceDate = new Date(entry[1]);
+            // Save to cache
+            saveToCache(cacheKey, attendanceDate.toISOString());
+            return attendanceDate;
         }
         return null;
     } catch (e) {
@@ -362,7 +424,15 @@ export const deleteTodayAttendance = async (email) => {
           }
         );
 
+
         if (!deleteResponse.ok) throw new Error(await deleteResponse.text());
+        
+        // Invalidate relevant caches
+        const dateStr = new Date().toISOString().split('T')[0];
+        const cacheKey = `${CACHE_KEYS.ATTENDANCE}_${email}_${dateStr}`;
+        localStorage.removeItem(cacheKey);
+        localStorage.removeItem(CACHE_KEYS.ALL_RECORDS);
+        
         return true;
 
     } catch (e) {
@@ -397,7 +467,16 @@ export const getAttendanceSheetUrl = async () => {
   }
 };
 
-export const getAllAttendance = async () => {
+export const getAllAttendance = async (skipCache = false) => {
+  // Try cache first (unless skipped)
+  if (!skipCache) {
+    const cached = getFromCache(CACHE_KEYS.ALL_RECORDS);
+    if (cached) {
+      console.log('📦 Using cached all records');
+      return cached;
+    }
+  }
+
   try {
     const accessToken = await getAccessToken();
     if (!accessToken) throw new Error("No access token");
@@ -412,11 +491,16 @@ export const getAllAttendance = async () => {
     if (!data.values || data.values.length <= 1) return [];
 
     // Skip header and map
-    return data.values.slice(1).map(row => ({
+    const records = data.values.slice(1).map(row => ({
       email: row[0],
       checkInTime: row[1],
       dateStr: row[2]
     })).reverse(); // Show newest first
+    
+    // Save to cache
+    saveToCache(CACHE_KEYS.ALL_RECORDS, records);
+    
+    return records;
   } catch (e) {
     console.warn("Failed to fetch all attendance:", e);
     return [];

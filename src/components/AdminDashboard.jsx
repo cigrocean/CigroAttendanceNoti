@@ -11,15 +11,27 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  const fetchData = async () => {
-    setIsLoading(true);
-    const records = await getAllAttendance();
-    setData(records);
+  const loadData = async () => {
+    // Show cached data immediately (non-blocking)
+    const cached = await getAllAttendance();
+    if (cached && cached.length > 0) {
+      setData(cached);
+      setIsLoading(false);
+    }
+    
+    // Then fetch fresh data in background
+    const fresh = await getAllAttendance(true); // skipCache = true
+    setData(fresh);
     setIsLoading(false);
   };
 
   useEffect(() => {
-    fetchData();
+    loadData();
+    
+    // Poll every 30 seconds for fresh data
+    const pollInterval = setInterval(loadData, 30000);
+    
+    return () => clearInterval(pollInterval);
   }, []);
 
   return (
@@ -35,7 +47,7 @@ export default function AdminDashboard() {
                <ArrowLeft className="w-4 h-4 mr-2" />
                Back
             </Button>
-            <Button variant="outline" size="sm" onClick={fetchData} disabled={isLoading}>
+            <Button variant="outline" size="sm" onClick={loadData} disabled={isLoading}>
                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
             </Button>
           </div>

@@ -40,21 +40,40 @@ export default function Dashboard() {
   // Load state on mount
   useEffect(() => {
     const savedEmail = localStorage.getItem('cigr_email');
-    if (savedEmail) {
-        setEmail(savedEmail);
-        setIsLoading(true);
-        // data migration or just fresh fetch
-        // We'll trust the sheet as the single source of truth for check-in status
-        getTodayAttendance(savedEmail).then(date => {
-            if (date) {
-                setCheckInTime(date);
-                toast.success("Restored check-in from cloud");
-            }
-        }).finally(() => setIsLoading(false));
-    }
-
+    if (!savedEmail) return;
+    
+    setEmail(savedEmail);
+    
+    const loadData = async () => {
+      try {
+        // Show cached data immediately (non-blocking)
+        const cached = await getTodayAttendance(savedEmail);
+        if (cached) {
+          setCheckInTime(cached);
+        }
+        
+        // Then fetch fresh data in background
+        const fresh = await getTodayAttendance(savedEmail, true); // skipCache = true
+        if (fresh) {
+          setCheckInTime(fresh);
+        }
+      } catch (e) {
+        console.warn("Failed to load attendance:", e);
+      }
+    };
+    
+    loadData();
+    
+    // Poll every 30 seconds for fresh data
+    const pollInterval = setInterval(loadData, 30000);
+    
+    // Also keep the clock ticking
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    
+    return () => {
+      clearInterval(pollInterval);
+      clearInterval(timer);
+    };
   }, []);
 
   const handleLogin = async () => {
@@ -364,14 +383,25 @@ export default function Dashboard() {
                         <div className="absolute inset-0 bg-blue-500 rounded-full blur-xl opacity-20 animate-pulse"></div>
                         <Button 
                             size="lg" 
-                            className="bg-blue-600 hover:bg-blue-700 text-white h-32 w-32 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-105 active:scale-95 flex flex-col items-center justify-center gap-2 border-4 border-blue-100 dark:border-blue-900"
+                            className="bg-blue-600 hover:bg-blue-700 text-white h-32 w-32 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-105 active:scale-95 flex flex-col items-center justify-center gap-2 border-4 border-blue-100 dark:border-blue-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                             onClick={handleNowCheckIn}
-                            disabled={isLoading || currentTime.getHours() >= OFFICE_END_LIMIT}
+                            disabled={isLoading || currentTime.getHours() >= OFFICE_START_LIMIT}
                         >
                             {isLoading ? <Loader2 className="w-8 h-8 animate-spin" /> : <Clock className="w-8 h-8" />}
                             <span className="font-bold text-lg">{isLoading ? 'Wait' : 'Check In'}</span>
                         </Button>
                     </div>
+                    {currentTime.getHours() >= OFFICE_START_LIMIT && currentTime.getHours() < OFFICE_END_LIMIT && (
+                        <div className="text-center space-y-2">
+                            <p className="text-sm text-amber-600 dark:text-amber-400 font-medium bg-amber-50 dark:bg-amber-950/30 px-4 py-2 rounded-lg flex items-center justify-center gap-2">
+                                <AlertTriangle className="w-4 h-4" />
+                                Instant check-in closed after {OFFICE_START_LIMIT}:00 AM
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                Please use <strong>Manual Entry</strong> below to check in
+                            </p>
+                        </div>
+                    )}
                     {currentTime.getHours() >= OFFICE_END_LIMIT && (
                         <p className="text-sm text-red-500 font-medium bg-red-50 dark:bg-red-950/30 px-3 py-1 rounded-full">
                             Check-in closed for the day
