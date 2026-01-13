@@ -370,3 +370,55 @@ export const deleteTodayAttendance = async (email) => {
         throw e;
     }
 };
+// Helper to get direct link to Attendance Sheet (gid)
+export const getAttendanceSheetUrl = async () => {
+  try {
+    const accessToken = await getAccessToken();
+    // Fallback if no token (public/readonly access might not work with API but link usually works without GID if public)
+    if (!accessToken) return `https://docs.google.com/spreadsheets/d/${SHEET_ID}`;
+
+    const metaResponse = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    
+    if (!metaResponse.ok) return `https://docs.google.com/spreadsheets/d/${SHEET_ID}`;
+
+    const meta = await metaResponse.json();
+    const sheet = meta.sheets.find(s => s.properties.title === ATTENDANCE_SHEET_TITLE);
+    
+    if (sheet) {
+        return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit#gid=${sheet.properties.sheetId}`;
+    }
+    return `https://docs.google.com/spreadsheets/d/${SHEET_ID}`;
+  } catch (e) {
+    console.warn("Failed to get sheet GID", e);
+    return `https://docs.google.com/spreadsheets/d/${SHEET_ID}`;
+  }
+};
+
+export const getAllAttendance = async () => {
+  try {
+    const accessToken = await getAccessToken();
+    if (!accessToken) throw new Error("No access token");
+
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${ATTENDANCE_SHEET_TITLE}!A:C?t=${new Date().getTime()}`,
+      { headers: { Authorization: `Bearer ${accessToken}` }, cache: 'no-store' }
+    );
+    
+    if (!response.ok) throw new Error("Failed to fetch data");
+    const data = await response.json();
+    if (!data.values || data.values.length <= 1) return [];
+
+    // Skip header and map
+    return data.values.slice(1).map(row => ({
+      email: row[0],
+      checkInTime: row[1],
+      dateStr: row[2]
+    })).reverse(); // Show newest first
+  } catch (e) {
+    console.warn("Failed to fetch all attendance:", e);
+    return [];
+  }
+};
