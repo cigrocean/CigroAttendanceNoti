@@ -17,7 +17,11 @@ export const getTranslation = (key, lang) => {
     retry: "Retry",
     unauthorized_location: "Unauthorized Location",
     unauthorized_ip: "Unauthorized IP",
-    error: "System Error"
+    error: "System Error",
+    vibeCodedBy: "Yes, this was 100% vibe-coded by, and is a legacy work of",
+    checkAnotherWork: "Check another work — SwaggerNav",
+    checkMeetingRooms: "Cigro Meeting Rooms",
+    github: "GitHub"
   };
   return translations[key] || key;
 };

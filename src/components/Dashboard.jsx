@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { toast } from 'sonner';
 import { Clock, CheckCircle, AlertTriangle, Settings, LogOut, Loader2 } from 'lucide-react';
 import { format, addHours, set, isAfter, isBefore, parseISO, startOfToday } from 'date-fns';
+import { getTranslation } from '@/utils/translations';
 
 const OFFICE_START_LIMIT = 10; // 10 AM
 const OFFICE_END_LIMIT = 19; // 7 PM
@@ -22,6 +23,9 @@ export default function Dashboard() {
   const [manualTime, setManualTime] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [manualConfirmOpen, setManualConfirmOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  
+  const t = (key) => getTranslation(key);
 
   // Load state on mount
   useEffect(() => {
@@ -246,15 +250,56 @@ export default function Dashboard() {
            <p className="text-muted-foreground font-medium animate-pulse">Syncing with cloud...</p>
         </div>
       )}
+      
+      {/* Vibe-coded credit */}
+      <div className="absolute top-4 w-full text-center px-4">
+        <div className="inline-block border border-border/50 rounded-md px-3 py-2 bg-muted/30 backdrop-blur-sm">
+          <p className="text-xs m-0 text-muted-foreground">
+            {t('vibeCodedBy')}{' '}
+            <span className="text-foreground font-medium">Ocean LITMERS</span>
+            {' · '}
+            <a 
+              href="https://github.com/oceanondawave/SwaggerNav" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="underline hover:text-blue-500 transition-colors"
+            >
+              {t('checkAnotherWork')}
+            </a>
+            {' · '}
+            <a 
+              href="https://cigromeetingroomsbooking.vercel.app/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="underline hover:text-blue-500 transition-colors"
+            >
+              {t('checkMeetingRooms')}
+            </a>
+            {' · '}
+            <a 
+              href="https://github.com/cigrocean/CigroAttendanceNoti" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="underline hover:text-blue-500 transition-colors"
+            >
+              {t('github')}
+            </a>
+          </p>
+        </div>
+      </div>
 
-      <Card className="w-full max-w-lg shadow-xl border-t-4 border-t-blue-600">
+      <Card className="w-full max-w-lg shadow-xl border-t-4 border-t-blue-600 mt-16">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div>
             <CardTitle className="text-2xl font-bold">Office Check-in</CardTitle>
             <CardDescription>{format(currentTime, 'EEEE, MMMM do yyyy')}</CardDescription>
+            <div className="text-xs text-muted-foreground mt-1 font-mono bg-muted/50 px-2 py-0.5 rounded-md inline-block w-fit truncate max-w-[200px]" title={email}>
+              {email}
+            </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleLogout} disabled={isLoading} title="Log Out">
-            <LogOut className="w-5 h-5 text-slate-400 hover:text-red-500 transition-colors" />
+          <Button variant="outline" size="sm" onClick={() => setLogoutConfirmOpen(true)} disabled={isLoading} className="text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 hover:border-red-200 dark:hover:border-red-800 transition-colors">
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign Out
           </Button>
         </CardHeader>
         
@@ -297,7 +342,7 @@ export default function Dashboard() {
                             </div>
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="bg-background text-foreground border-border sm:max-w-md">
+                    <DialogContent className="!bg-white dark:!bg-slate-950 text-slate-900 dark:text-slate-50 border-slate-200 dark:border-slate-800 sm:max-w-md z-[100] shadow-2xl">
                         <DialogHeader>
                             <DialogTitle>Confirm Check-in</DialogTitle>
                             <DialogDescription>
@@ -342,7 +387,7 @@ export default function Dashboard() {
                       </details>
               {/* Manual Confirm Dialog */}
               <Dialog open={manualConfirmOpen} onOpenChange={setManualConfirmOpen}>
-                <DialogContent className="bg-background text-foreground border-border sm:max-w-md">
+                <DialogContent className="!bg-white dark:!bg-slate-950 text-slate-900 dark:text-slate-50 border-slate-200 dark:border-slate-800 sm:max-w-md z-[100] shadow-2xl">
                     <DialogHeader>
                         <DialogTitle>Confirm Manual Entry</DialogTitle>
                         <DialogDescription>
@@ -400,6 +445,27 @@ export default function Dashboard() {
                   </Button>
               </div>
           )}
+
+              {/* Logout Confirmation Dialog */}
+              <Dialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen}>
+                <DialogContent className="!bg-white dark:!bg-slate-950 text-slate-900 dark:text-slate-50 border-slate-200 dark:border-slate-800 sm:max-w-md z-[100] shadow-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Sign Out</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to sign out? You will need to re-verify via email next time.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setLogoutConfirmOpen(false)} disabled={isLoading}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleLogout} disabled={isLoading} className="bg-red-600 hover:bg-red-700 text-white">
+                            {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <LogOut className="w-4 h-4 mr-2" />}
+                            Sign Out
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+              </Dialog>
         </CardContent>
       </Card>
 

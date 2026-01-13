@@ -68,3 +68,20 @@
     color: hsl(var(--foreground));
   }
 }
+
+@layer base {
+  :root {
+    --dialog-override-bg: white;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --dialog-override-bg: #020617; /* slate-950 */
+    }
+  }
+}
+
+/* Force Dialog Background Explicitly */
+.fix-dialog-bg {
+  background-color: var(--dialog-override-bg) !important;
+}
+
