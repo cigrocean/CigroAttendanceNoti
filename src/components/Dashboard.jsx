@@ -225,10 +225,11 @@ export default function Dashboard() {
                       </div>
                       <Button 
                         onClick={handleLogin} 
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-14 text-lg rounded-xl shadow-lg shadow-blue-900/10 transition-all hover:scale-[1.02]"
-                        disabled={!welcomeEmail.trim()}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-14 text-lg rounded-xl shadow-lg shadow-blue-900/10 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:grayscale"
+                        disabled={!welcomeEmail.trim() || isLoading}
                       >
-                        Get Started
+                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+                        {isLoading ? "Signing In..." : "Get Started"}
                       </Button>
                   </CardContent>
               </Card>
@@ -252,7 +253,7 @@ export default function Dashboard() {
             <CardTitle className="text-2xl font-bold">Office Check-in</CardTitle>
             <CardDescription>{format(currentTime, 'EEEE, MMMM do yyyy')}</CardDescription>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleLogout} title="Log Out">
+          <Button variant="ghost" size="icon" onClick={handleLogout} disabled={isLoading} title="Log Out">
             <LogOut className="w-5 h-5 text-slate-400 hover:text-red-500 transition-colors" />
           </Button>
         </CardHeader>
@@ -271,9 +272,9 @@ export default function Dashboard() {
                   <Dialog>
                     <DialogTrigger asChild>
                         <Button 
-                            disabled={currentTime.getHours() >= OFFICE_START_LIMIT}
+                            disabled={currentTime.getHours() >= OFFICE_START_LIMIT || isLoading}
                             className={`w-full h-24 text-2xl font-bold rounded-3xl shadow-xl shadow-blue-500/20 transition-all border-t border-white/20 relative overflow-hidden group text-white ${
-                                currentTime.getHours() >= OFFICE_START_LIMIT 
+                                currentTime.getHours() >= OFFICE_START_LIMIT || isLoading 
                                 ? 'bg-slate-300 cursor-not-allowed text-slate-500' 
                                 : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:shadow-blue-500/30 hover:scale-[1.02]'
                             }`}
@@ -296,7 +297,7 @@ export default function Dashboard() {
                             </div>
                         </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="bg-background text-foreground border-border sm:max-w-md">
                         <DialogHeader>
                             <DialogTitle>Confirm Check-in</DialogTitle>
                             <DialogDescription>
@@ -304,7 +305,10 @@ export default function Dashboard() {
                             </DialogDescription>
                         </DialogHeader>
                         <DialogFooter>
-                            <Button onClick={handleNowCheckIn} className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700">Confirm</Button>
+                            <Button onClick={handleNowCheckIn} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50">
+                                {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                                Confirm
+                            </Button>
                         </DialogFooter>
                     </DialogContent>
                   </Dialog>
@@ -326,7 +330,7 @@ export default function Dashboard() {
                                   <Button 
                                     variant="secondary" 
                                     onClick={handleManualCheckInTrigger}
-                                    disabled={currentTime.getHours() >= OFFICE_END_LIMIT}
+                                    disabled={currentTime.getHours() >= OFFICE_END_LIMIT || isLoading}
                                     >Set</Button>
                               </div>
                               <p className="text-[10px] text-center text-muted-foreground">
@@ -338,7 +342,7 @@ export default function Dashboard() {
                       </details>
               {/* Manual Confirm Dialog */}
               <Dialog open={manualConfirmOpen} onOpenChange={setManualConfirmOpen}>
-                <DialogContent>
+                <DialogContent className="bg-background text-foreground border-border sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>Confirm Manual Entry</DialogTitle>
                         <DialogDescription>
@@ -346,7 +350,10 @@ export default function Dashboard() {
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button onClick={confirmManualCheckIn} className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700">Confirm</Button>
+                        <Button onClick={confirmManualCheckIn} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50">
+                            {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                            Confirm
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -387,9 +394,9 @@ export default function Dashboard() {
                       </div>
                   </div>
 
-                  <Button variant="outline" className="w-full text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 border-red-200 dark:border-red-800" onClick={handleClearCheckIn}>
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Cancel / Reset Check-in
+                  <Button variant="outline" disabled={isLoading} className="w-full text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 border-red-200 dark:border-red-800 disabled:opacity-50" onClick={handleClearCheckIn}>
+                      {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <LogOut className="w-4 h-4 mr-2" />}
+                      {isLoading ? 'Processing...' : 'Cancel / Reset Check-in'}
                   </Button>
               </div>
           )}

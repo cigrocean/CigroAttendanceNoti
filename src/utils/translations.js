@@ -14,7 +14,10 @@ export const getTranslation = (key, lang) => {
     unauthorizedDefaultMessage: "You are not authorized to access this page.",
     status: "Status",
     distance: "Distance",
-    retry: "Retry"
+    retry: "Retry",
+    unauthorized_location: "Unauthorized Location",
+    unauthorized_ip: "Unauthorized IP",
+    error: "System Error"
   };
   return translations[key] || key;
 };
