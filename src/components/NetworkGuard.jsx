@@ -309,10 +309,17 @@ const NetworkGuard = ({ children }) => {
                 )}
             </div>
 
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-3 mb-2">
-                <p className="text-xs text-blue-700 dark:text-blue-300 font-medium leading-relaxed text-center flex items-center justify-center gap-1">
-                    Please enable <strong>Location Access</strong> in your browser settings (<Lock className="w-3 h-3 inline" /> icon) and reload.
-                </p>
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-4 mx-auto max-w-[320px]">
+                <div className="flex flex-col items-center gap-2 text-center">
+                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                        Location Access Required
+                    </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                        Please check your browser settings<br/>
+                        (usually the <Lock className="w-3 h-3 inline align-middle mb-0.5" />)
+                        <br/>to allow location, then reload.
+                    </p>
+                </div>
             </div>
             
             <button 
