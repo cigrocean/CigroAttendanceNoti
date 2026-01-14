@@ -25,6 +25,7 @@ export default function Dashboard() {
   const [emailPrefix, setEmailPrefix] = useState('');
   const [emailDomain, setEmailDomain] = useState('@litmers.com');
   // const [welcomeEmail, setWelcomeEmail] = useState(''); // Deprecated
+  const [displayName, setDisplayName] = useState('');
   const [manualTime, setManualTime] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [manualConfirmOpen, setManualConfirmOpen] = useState(false);
@@ -33,6 +34,27 @@ export default function Dashboard() {
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [sheetUrl, setSheetUrl] = useState(`https://docs.google.com/spreadsheets/d/${import.meta.env.VITE_GOOGLE_SHEET_ID}`);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  // Recent Emails Logic
+  const [recentEmails, setRecentEmails] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  useEffect(() => {
+    try {
+        const stored = localStorage.getItem('cigr_recent_emails');
+        if (stored) setRecentEmails(JSON.parse(stored));
+    } catch (e) {
+        console.error("Failed to load recent emails", e);
+    }
+  }, []);
+
+  const saveToRecent = (prefix) => {
+      if (!prefix) return;
+      const updated = [prefix, ...recentEmails.filter(e => e !== prefix)].slice(0, 5);
+      setRecentEmails(updated);
+      localStorage.setItem('cigr_recent_emails', JSON.stringify(updated));
+  };
+  
   const navigate = useNavigate();
   
   const fullEmail = `${emailPrefix}${emailDomain}`;
@@ -51,6 +73,8 @@ export default function Dashboard() {
     if (!savedEmail) return;
     
     setEmail(savedEmail);
+    const savedName = localStorage.getItem('cigr_name');
+    if (savedName) setDisplayName(savedName);
     
     const loadData = async () => {
       try {
@@ -87,14 +111,55 @@ export default function Dashboard() {
   const handleLogin = async () => {
     if (!emailPrefix.trim()) return;
     const fullEmail = `${emailPrefix.trim()}${emailDomain}`;
+    const webhookUrl = import.meta.env.VITE_MS_FLOW_WEBHOOK;
     
     setIsLoading(true);
-    
-    // Trigger sync
+
     try {
+        // 1. Validate Email with Power Automate
+        if (webhookUrl) {
+            try {
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        email: fullEmail,
+                        type: 'validate-user' 
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    if (result.valid === false) {
+                        toast.error("Access Denied: Email not found in Organization.");
+                        setIsLoading(false);
+                        return; // Generic stop
+                    }
+
+                    if (result.name) {
+                        localStorage.setItem('cigr_name', result.name);
+                        setDisplayName(result.name);
+                        const firstName = result.name.split(' ')[0].replace(/[,.]/g, '');
+                        toast.success(`Welcome back, ${firstName}!`);
+                    }
+                }
+            } catch (validationError) {
+                console.warn("Validation skipped or failed (Flow might be down)", validationError);
+                // Optional: blocking or non-blocking? 
+                // Plan implies blocking, but if Flow is down, user is locked out.
+                // Let's assume strict blocking for now as requested.
+                // toast.error("Validation service unreachable.");
+                // setIsLoading(false);
+                // return;
+            }
+        }
+    
+        // 2. Trigger sync
         const date = await getTodayAttendance(fullEmail);
         setEmail(fullEmail);
         localStorage.setItem('cigr_email', fullEmail);
+        saveToRecent(emailPrefix.trim());
         
         if (date) {
             setCheckInTime(date);
@@ -290,14 +355,39 @@ export default function Dashboard() {
                   <CardContent className="space-y-8 pt-4">
                       <div className="flex flex-col gap-10">
                           <Label className="text-base font-medium">Email (for notification)</Label>
-                          <div className="flex gap-2">
-                             <Input 
-                                value={emailPrefix} 
-                                onChange={e => setEmailPrefix(e.target.value)} 
-                                placeholder="ocean"
-                                className="h-12 text-base md:text-base w-[140px] text-right pr-2"
-                                onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                              />
+                          <div className="flex gap-2 relative z-20">
+                             <div className="relative">
+                                <Input 
+                                    value={emailPrefix} 
+                                    onChange={e => setEmailPrefix(e.target.value)} 
+                                    onFocus={() => setShowSuggestions(true)}
+                                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                                    placeholder="ocean"
+                                    className="h-12 text-base md:text-base w-[140px] text-right pr-2"
+                                    onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                                    autoComplete="off"
+                                />
+                                {(() => {
+                                    const filtered = recentEmails.filter(e => e.toLowerCase().includes(emailPrefix.toLowerCase()));
+                                    if (!showSuggestions || filtered.length === 0) return null;
+                                    
+                                    return (
+                                        <div className="absolute top-full left-0 w-full mt-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md shadow-xl overflow-hidden z-50">
+                                            {filtered.map((e, i) => (
+                                                <div 
+                                                    key={i}
+                                                    className="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-900 cursor-pointer text-sm text-right transition-colors"
+                                                    onClick={() => {
+                                                        setEmailPrefix(e);
+                                                    }}
+                                                >
+                                                    {e}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                })()}
+                             </div>
                               <Select value={emailDomain} onValueChange={setEmailDomain}>
                                 <SelectTrigger className="h-12 text-base flex-1 cursor-pointer">
                                     <SelectValue placeholder="Select domain" />
@@ -333,6 +423,8 @@ export default function Dashboard() {
         </div>
       )}
       
+
+
       {/* Vibe-coded credit */}
       <div className="w-full text-center px-4 mb-4 z-10">
         <div className="inline-block border border-border/50 rounded-md px-3 py-2 bg-muted/30 backdrop-blur-sm shadow-sm pointer-events-auto">
@@ -370,8 +462,21 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center w-full">
-        <Card className="w-full max-w-lg shadow-xl border-t-4 border-t-blue-600">
+      <div className="flex-1 flex flex-col items-center justify-center w-full">
+        <div className="w-full max-w-lg flex flex-col gap-3">
+            {displayName && (
+                <div className="animate-in fade-in slide-in-from-left-2 duration-500 px-1">
+                    <h1 className="text-lg md:text-xl font-medium text-muted-foreground flex items-center gap-2">
+                        {(() => {
+                            const h = currentTime.getHours();
+                            if (h < 12) return "Good morning ☀️,";
+                            if (h < 18) return "Good afternoon 🌤️,";
+                            return "Good evening 🌙,";
+                        })()} <span className="text-foreground font-bold">{displayName.split(' ')[0].replace(/[,.]/g, '')}</span>
+                    </h1>
+                </div>
+            )}
+            <Card className="w-full shadow-xl border-t-4 border-t-blue-600">
             {/* Card Content... */}
             <CardHeader className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between space-y-0 pb-2 gap-4">
             <div>
@@ -397,13 +502,13 @@ export default function Dashboard() {
                         <Settings className="w-4 h-4 mr-2" />
                         Settings
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => setLogoutConfirmOpen(true)} disabled={isLoading} className="flex-1 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 hover:border-red-200 dark:hover:border-red-800 transition-colors">
+                    <Button variant="outline" size="sm" onClick={() => setLogoutConfirmOpen(true)} disabled={isLoading} className="flex-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 border-red-200 dark:border-red-900 transition-colors">
                         <LogOut className="w-4 h-4 mr-2" />
                         Sign Out
                     </Button>
                 </div>
             </div>
-            </CardHeader>
+          </CardHeader>
             
             <CardContent className="space-y-8 pt-6">
             {/* Main Status Area */}
@@ -598,6 +703,7 @@ export default function Dashboard() {
                 </Dialog>
             </CardContent>
         </Card>
+        </div>
       </div>
 
       <SettingsDialog 
