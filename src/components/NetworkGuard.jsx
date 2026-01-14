@@ -3,6 +3,7 @@ import { Lock, ShieldAlert, MapPin, Loader2 } from 'lucide-react';
 import { fetchAuthorizedNetworks, authorizeNetwork } from '../services/googleSheets';
 import { getTranslation } from '../utils/translations';
 import { useLanguage } from '../hooks/useLanguage';
+import { toast } from 'sonner';
 
 // Config
 const ALLOWED_LOCATION = import.meta.env.VITE_ALLOWED_LOCATION
@@ -118,6 +119,10 @@ const NetworkGuard = ({ children }) => {
 
             setLocationStatus({ distance, accuracy });
             console.log(`Location Check: ${distance.toFixed(0)}m (Limit: ${LOCATION_RADIUS}m)`);
+            
+            // Show feedback
+            toast.dismiss(); // Clear previous
+            toast.success(`Location updated: ${distance.toFixed(0)}m away`);
 
             if (distance <= LOCATION_RADIUS) {
                 // Location Passed -> Prompt for Password
@@ -130,13 +135,27 @@ const NetworkGuard = ({ children }) => {
             setIsCheckingLocation(false);
             console.error("Location error:", err);
             let msg = err.message;
-            if (err.code === 1) msg = "Location permission denied.";
+            let isDenied = false;
+
+            if (err.code === 1) {
+                msg = "Location permission denied.";
+                isDenied = true;
+            }
             if (err.code === 2) msg = "Location unavailable.";
             if (err.code === 3) msg = "Location request timed out.";
             
             setErrorDetails(msg);
             setLocationStatus({ error: msg });
             setStatus('unauthorized_location');
+            
+            toast.dismiss();
+            toast.error(msg);
+
+            // If denied, we often need to reload to re-trigger prompt in some browsers
+            if (isDenied) {
+                toast.info("Reloading to reset permissions...", { duration: 2000 });
+                setTimeout(() => window.location.reload(), 2500);
+            }
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
      );
