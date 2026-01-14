@@ -107,51 +107,58 @@ const NetworkGuard = ({ children }) => {
 
      setIsCheckingLocation(true);
      setLocationStatus(null); // Clear previous status/error
+     const startTime = Date.now();
+     const MIN_DELAY = 800; // Minimum spinner duration in ms
+
+     const handleCompletion = (callback) => {
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, MIN_DELAY - elapsed);
+        setTimeout(callback, remaining);
+     };
 
      navigator.geolocation.getCurrentPosition(
         (position) => {
-            setIsCheckingLocation(false);
-            const { latitude, longitude, accuracy } = position.coords;
-            const distance = getDistanceFromLatLonInMeters(
-                latitude, longitude,
-                ALLOWED_LOCATION[0], ALLOWED_LOCATION[1]
-            );
+            handleCompletion(() => {
+                setIsCheckingLocation(false);
+                const { latitude, longitude, accuracy } = position.coords;
+                const distance = getDistanceFromLatLonInMeters(
+                    latitude, longitude,
+                    ALLOWED_LOCATION[0], ALLOWED_LOCATION[1]
+                );
 
-            setLocationStatus({ distance, accuracy });
-            console.log(`Location Check: ${distance.toFixed(0)}m (Limit: ${LOCATION_RADIUS}m)`);
-            
-            // Show feedback
-            toast.dismiss(); // Clear previous
-            toast.success(`Location updated: ${distance.toFixed(0)}m away`);
+                setLocationStatus({ distance, accuracy });
+                console.log(`Location Check: ${distance.toFixed(0)}m (Limit: ${LOCATION_RADIUS}m)`);
+                
+                // Show feedback
+                toast.dismiss(); 
+                toast.success(`Location updated: ${distance.toFixed(0)}m away`);
 
-            if (distance <= LOCATION_RADIUS) {
-                // Location Passed -> Prompt for Password
-                setStatus('unauthorized_ip');
-            } else {
-                setStatus('unauthorized_location');
-            }
+                if (distance <= LOCATION_RADIUS) {
+                    setStatus('unauthorized_ip');
+                } else {
+                    setStatus('unauthorized_location');
+                }
+            });
         },
         (err) => {
-            setIsCheckingLocation(false);
-            console.error("Location error:", err);
-            let msg = err.message;
-            let isDenied = false;
+            handleCompletion(() => {
+                setIsCheckingLocation(false);
+                console.error("Location error:", err);
+                let msg = err.message;
 
-            if (err.code === 1) {
-                msg = "Location permission denied.";
-                isDenied = true;
-            }
-            if (err.code === 2) msg = "Location unavailable.";
-            if (err.code === 3) msg = "Location request timed out.";
-            
-            setErrorDetails(msg);
-            setLocationStatus({ error: msg });
-            setStatus('unauthorized_location');
-            
-            toast.dismiss();
-            toast.error(msg);
-
-
+                if (err.code === 1) {
+                    msg = "Permission denied. Please reset browser permissions.";
+                }
+                if (err.code === 2) msg = "Location unavailable. Try moving to a better signal area.";
+                if (err.code === 3) msg = "Location timed out. Please retry.";
+                
+                setErrorDetails(msg);
+                setLocationStatus({ error: msg });
+                setStatus('unauthorized_location');
+                
+                toast.dismiss();
+                toast.error(msg);
+            });
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
      );
