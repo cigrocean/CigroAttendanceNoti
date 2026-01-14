@@ -59,6 +59,19 @@ const NetworkGuard = ({ children }) => {
   const [passwordError, setPasswordError] = useState(false);
   const [isAuthorizing, setIsAuthorizing] = useState(false);
   const [errorDetails, setErrorDetails] = useState('');
+  const [permissionState, setPermissionState] = useState(null); // 'granted', 'prompt', 'denied'
+
+  useEffect(() => {
+    if (navigator.permissions && navigator.permissions.query) {
+       navigator.permissions.query({ name: 'geolocation' })
+         .then(perm => {
+             setPermissionState(perm.state);
+             console.log("Permission state:", perm.state);
+             perm.onchange = () => setPermissionState(perm.state);
+         })
+         .catch(err => console.log("Permissions API not supported for geo", err));
+    }
+  }, []);
 
   const checkAccess = async () => {
     try {
@@ -329,14 +342,24 @@ const NetworkGuard = ({ children }) => {
                 </div>
             </div>
             
+            
             <button 
                 onClick={() => checkLocation(currentIp)}
-                disabled={isCheckingLocation}
-                className="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold py-3 text-sm transition-colors mb-3 rounded-xl shadow-lg shadow-blue-500/20 disabled:opacity-70 disabled:cursor-not-allowed"
+                disabled={isCheckingLocation || permissionState === 'denied'}
+                className="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold py-3 text-sm transition-colors mb-3 rounded-xl shadow-lg shadow-blue-500/20 disabled:opacity-70 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
             >
                 <div className="flex items-center justify-center gap-2">
-                    {isCheckingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
-                    <span>{isCheckingLocation ? "Checking..." : "Request Location Access"}</span>
+                    {permissionState === 'denied' ? (
+                        <>
+                        <ShieldAlert className="w-4 h-4" />
+                        <span>Permission Blocked - Reset Settings</span>
+                        </>
+                    ) : (
+                        <>
+                        {isCheckingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+                        <span>{isCheckingLocation ? "Checking..." : "Request Location Access"}</span>
+                        </>
+                    )}
                 </div>
             </button>
             
