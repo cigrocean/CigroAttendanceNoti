@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, ShieldAlert, MapPin } from 'lucide-react';
+import { Lock, ShieldAlert, MapPin, Loader2 } from 'lucide-react';
 import { fetchAuthorizedNetworks, authorizeNetwork } from '../services/googleSheets';
 import { getTranslation } from '../utils/translations';
 import { useLanguage } from '../hooks/useLanguage';
@@ -53,6 +53,7 @@ const NetworkGuard = ({ children }) => {
   const [status, setStatus] = useState('loading');
   const [currentIp, setCurrentIp] = useState('');
   const [locationStatus, setLocationStatus] = useState(null); // { distance, accuracy, error }
+  const [isCheckingLocation, setIsCheckingLocation] = useState(false);
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState(false);
   const [isAuthorizing, setIsAuthorizing] = useState(false);
@@ -103,8 +104,12 @@ const NetworkGuard = ({ children }) => {
          return;
      }
 
+     setIsCheckingLocation(true);
+     setLocationStatus(null); // Clear previous status/error
+
      navigator.geolocation.getCurrentPosition(
         (position) => {
+            setIsCheckingLocation(false);
             const { latitude, longitude, accuracy } = position.coords;
             const distance = getDistanceFromLatLonInMeters(
                 latitude, longitude,
@@ -122,6 +127,7 @@ const NetworkGuard = ({ children }) => {
             }
         },
         (err) => {
+            setIsCheckingLocation(false);
             console.error("Location error:", err);
             let msg = err.message;
             if (err.code === 1) msg = "Location permission denied.";
@@ -290,17 +296,18 @@ const NetworkGuard = ({ children }) => {
 
             <button 
                 onClick={() => checkLocation(currentIp)}
-                className="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold py-3 text-sm transition-colors mb-2 rounded shadow-lg shadow-blue-500/20"
+                disabled={isCheckingLocation}
+                className="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold py-3 text-sm transition-colors mb-2 rounded shadow-lg shadow-blue-500/20 disabled:opacity-70 disabled:cursor-not-allowed"
                 style={{ 
                   boxSizing: 'border-box',
                   borderRadius: '12px',
                   width: '100%',
-                  cursor: 'pointer'
+                  cursor: isCheckingLocation ? 'not-allowed' : 'pointer'
                 }}
             >
                 <div className="flex items-center justify-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    <span>{t('retry')} Location</span>
+                    {isCheckingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+                    <span>{isCheckingLocation ? "Checking..." : `${t('retry')} Location`}</span>
                 </div>
             </button>
             
