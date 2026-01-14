@@ -323,6 +323,17 @@ const NetworkGuard = ({ children }) => {
             </div>
             
             <button 
+                onClick={() => checkLocation(currentIp)}
+                disabled={isCheckingLocation}
+                className="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold py-3 text-sm transition-colors mb-3 rounded-xl shadow-lg shadow-blue-500/20 disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+                <div className="flex items-center justify-center gap-2">
+                    {isCheckingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+                    <span>{isCheckingLocation ? "Checking..." : "Request Location Access"}</span>
+                </div>
+            </button>
+            
+            <button 
                 onClick={() => window.location.reload()}
                 className="w-full text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors py-2 rounded"
             >
