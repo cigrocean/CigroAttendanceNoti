@@ -35,12 +35,13 @@ export const getFromCache = (key) => {
 export const clearAppCache = () => {
   try {
     Object.keys(localStorage).forEach(key => {
-      // Remove all keys starting with 'cigro_' EXCEPT settings if any (none yet specific to user prefs)
-      if (key.startsWith('cigro_')) {
+      // Remove all keys starting with 'cigro_' OR 'cigr_'
+      if (key.startsWith('cigro_') || key.startsWith('cigr_')) {
+        console.log(`🗑️ Deleting cache key: ${key}`);
         localStorage.removeItem(key);
       }
     });
-    console.log('🧹 App cache cleared');
+    console.log('🧹 App cache cleared completely');
   } catch (e) {
     console.warn('Failed to clear app cache', e);
   }
@@ -518,5 +519,173 @@ export const getAllAttendance = async (skipCache = false) => {
   } catch (e) {
     console.warn("Failed to fetch all attendance:", e);
     return [];
+  }
+};
+// ==========================================
+// USER PREFERENCES (Daily Reminders)
+// ==========================================
+
+const PREFS_SHEET_TITLE = "USER_PREFERENCES";
+
+const ensurePreferencesSheet = async (accessToken) => {
+  try {
+    const metaResponse = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    
+    if (!metaResponse.ok) throw new Error("Failed to fetch spreadsheet metadata");
+    const meta = await metaResponse.json();
+    const existing = meta.sheets.find(s => s.properties.title === PREFS_SHEET_TITLE);
+    
+    if (existing) return existing.properties.sheetId;
+
+    console.log(`Creating sheet: ${PREFS_SHEET_TITLE}...`);
+    const createResponse = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          requests: [{
+            addSheet: {
+              properties: {
+                title: PREFS_SHEET_TITLE,
+                gridProperties: { rowCount: 1000, columnCount: 4 }
+              }
+            }
+          }]
+        }),
+      }
+    );
+    
+    if (!createResponse.ok) throw new Error("Failed to create preferences sheet");
+    
+    // Add Header
+    await fetch(
+       `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${PREFS_SHEET_TITLE}!A1:D1:append?valueInputOption=USER_ENTERED`,
+       {
+         method: "POST",
+         headers: {
+           Authorization: `Bearer ${accessToken}`,
+           "Content-Type": "application/json",
+         },
+         body: JSON.stringify({
+            values: [["Email", "Enabled", "TimeSlot", "LastUpdated"]]
+         })
+       }
+    );
+  } catch (e) {
+    console.error("Error ensuring preferences sheet:", e);
+    throw e;
+  }
+};
+
+export const getUserPreferences = async (email) => {
+  try {
+    const accessToken = await getAccessToken();
+    if (!accessToken) return null;
+
+    // Ensure exists
+    try { await ensurePreferencesSheet(accessToken); } catch (e) {}
+
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${PREFS_SHEET_TITLE}!A:D?t=${new Date().getTime()}`,
+      { headers: { Authorization: `Bearer ${accessToken}` }, cache: 'no-store' }
+    );
+    
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (!data.values || data.values.length <= 1) return null;
+
+    // Find row
+    const row = data.values.find(r => r[0] === email);
+    if (!row) return null;
+
+    // Handle "TRUE", "true", true (bool)
+    const rawEnabled = row[1];
+    const isEnabled = (rawEnabled === true || String(rawEnabled).toUpperCase() === "TRUE");
+
+    return {
+      email: row[0],
+      enabled: isEnabled,
+      timeSlot: row[2] || "8",
+      lastUpdated: row[3] // Column D
+    };
+
+  } catch (e) {
+    console.warn("Failed to get preferences:", e);
+    return null;
+  }
+};
+
+export const updateUserPreferences = async (email, enabled, timeSlot) => {
+  try {
+    const accessToken = await getAccessToken();
+    if (!accessToken) throw new Error("No access token");
+
+    await ensurePreferencesSheet(accessToken);
+
+    // 1. Fetch all data to find index
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${PREFS_SHEET_TITLE}!A:D?t=${new Date().getTime()}`,
+      { headers: { Authorization: `Bearer ${accessToken}` }, cache: 'no-store' }
+    );
+    const data = await response.json();
+    const rows = data.values || [];
+    
+    let rowIndex = -1;
+    // Start from index 1 (skip header)
+    for (let i = 1; i < rows.length; i++) {
+        if (rows[i][0] === email) {
+            rowIndex = i + 1; // 1-based index for API
+            break;
+        }
+    }
+
+    const timestamp = new Date().toISOString();
+    // WRITE RAW BOOLEAN (true/false) NOT STRING "TRUE"/"FALSE"
+    // Google Sheets treats raw boolean true as TRUE cell value
+    const values = [[ email, enabled, String(timeSlot), timestamp ]];
+    
+    console.log("Updating sheet with values (CHECK ENABLED):", values); // DEBUG LOG
+
+    if (rowIndex !== -1) {
+        // UPDATE existing row
+        console.log(`Updating prefs for ${email} at row ${rowIndex}`);
+        await fetch(
+            `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${PREFS_SHEET_TITLE}!A${rowIndex}:D${rowIndex}?valueInputOption=USER_ENTERED`,
+            {
+                method: "PUT",
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ values })
+            }
+        );
+    } else {
+        // APPEND new row
+        console.log(`Creating new prefs for ${email}`);
+        await fetch(
+            `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${PREFS_SHEET_TITLE}!A:D:append?valueInputOption=USER_ENTERED`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ values })
+            }
+        );
+    }
+    return true;
+
+  } catch (e) {
+    console.error("Failed to update preferences:", e);
+    throw e;
   }
 };

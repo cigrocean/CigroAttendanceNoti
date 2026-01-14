@@ -11,6 +11,7 @@ import { Clock, CheckCircle, AlertTriangle, Settings, LogOut, Loader2, FileText 
 import { format, addHours, set, isAfter, isBefore, parseISO, startOfToday } from 'date-fns';
 import { getTranslation } from '@/utils/translations';
 import { useNavigate } from 'react-router-dom';
+import SettingsDialog from '@/components/SettingsDialog';
 
 const OFFICE_START_LIMIT = 10; // 10 AM
 const OFFICE_END_LIMIT = 19; // 7 PM
@@ -31,7 +32,10 @@ export default function Dashboard() {
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [sheetUrl, setSheetUrl] = useState(`https://docs.google.com/spreadsheets/d/${import.meta.env.VITE_GOOGLE_SHEET_ID}`);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const navigate = useNavigate();
+  
+  const fullEmail = `${emailPrefix}${emailDomain}`;
   
   const t = (key) => getTranslation(key);
 
@@ -238,7 +242,7 @@ export default function Dashboard() {
      if (!checkInTime || !endTime || !email) return;
      
      const checkNoti = async () => {
-         const notifiedKey = `cigr_notified_${format(checkInTime, 'yyyy-MM-dd')}`;
+         const notifiedKey = `cigr_notified_${email}_${format(checkInTime, 'yyyy-MM-dd')}`;
          const hasNotified = localStorage.getItem(notifiedKey);
          
          if (!hasNotified && currentTime >= endTime) {
@@ -388,10 +392,16 @@ export default function Dashboard() {
                         Sheet
                     </Button>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => setLogoutConfirmOpen(true)} disabled={isLoading} className="text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 hover:border-red-200 dark:hover:border-red-800 transition-colors w-full">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
-                </Button>
+                <div className="flex gap-2 w-full">
+                    <Button variant="outline" size="sm" onClick={() => setIsSettingsOpen(true)} className="flex-1 text-muted-foreground hover:text-slate-900 hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
+                        <Settings className="w-4 h-4 mr-2" />
+                        Settings
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setLogoutConfirmOpen(true)} disabled={isLoading} className="flex-1 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 hover:border-red-200 dark:hover:border-red-800 transition-colors">
+                        <LogOut className="w-4 h-4 mr-2" />
+                        Sign Out
+                    </Button>
+                </div>
             </div>
             </CardHeader>
             
@@ -590,6 +600,11 @@ export default function Dashboard() {
         </Card>
       </div>
 
+      <SettingsDialog 
+        open={isSettingsOpen} 
+        onOpenChange={setIsSettingsOpen} 
+        email={email} 
+      />
     </div>
   );
 
