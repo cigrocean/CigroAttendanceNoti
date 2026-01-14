@@ -151,11 +151,7 @@ const NetworkGuard = ({ children }) => {
             toast.dismiss();
             toast.error(msg);
 
-            // If denied, we often need to reload to re-trigger prompt in some browsers
-            if (isDenied) {
-                toast.info("Reloading to reset permissions...", { duration: 2000 });
-                setTimeout(() => window.location.reload(), 2500);
-            }
+
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
      );
@@ -313,22 +309,11 @@ const NetworkGuard = ({ children }) => {
                 )}
             </div>
 
-            <button 
-                onClick={() => checkLocation(currentIp)}
-                disabled={isCheckingLocation}
-                className="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold py-3 text-sm transition-colors mb-2 rounded shadow-lg shadow-blue-500/20 disabled:opacity-70 disabled:cursor-not-allowed"
-                style={{ 
-                  boxSizing: 'border-box',
-                  borderRadius: '12px',
-                  width: '100%',
-                  cursor: isCheckingLocation ? 'not-allowed' : 'pointer'
-                }}
-            >
-                <div className="flex items-center justify-center gap-2">
-                    {isCheckingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
-                    <span>{isCheckingLocation ? "Checking..." : `${t('retry')} Location`}</span>
-                </div>
-            </button>
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-3 mb-2">
+                <p className="text-xs text-blue-700 dark:text-blue-300 font-medium leading-relaxed text-center flex items-center justify-center gap-1">
+                    Please enable <strong>Location Access</strong> in your browser settings (<Lock className="w-3 h-3 inline" /> icon) and reload.
+                </p>
+            </div>
             
             <button 
                 onClick={() => window.location.reload()}
