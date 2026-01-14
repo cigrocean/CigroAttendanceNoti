@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, ShieldAlert } from 'lucide-react';
+import { Lock, ShieldAlert, MapPin } from 'lucide-react';
 import { fetchAuthorizedNetworks, authorizeNetwork } from '../services/googleSheets';
 import { getTranslation } from '../utils/translations';
 import { useLanguage } from '../hooks/useLanguage';
@@ -274,17 +274,23 @@ const NetworkGuard = ({ children }) => {
                 </div>
                 {locationStatus && (
                     <div className="flex justify-between items-center text-xs border-t border-border pt-2">
-                        <span className="text-muted-foreground font-medium">{t('distance')}</span>
-                        <span className={`font-mono font-bold ${locationStatus.distance > LOCATION_RADIUS ? 'text-destructive' : 'text-green-600 dark:text-green-400'}`}>
-                            {locationStatus.distance?.toFixed(0)}m / {LOCATION_RADIUS}m
-                        </span>
+                        {locationStatus.error ? (
+                            <span className="text-destructive w-full text-center font-medium">{locationStatus.error}</span>
+                        ) : (
+                            <>
+                            <span className="text-muted-foreground font-medium">{t('distance')}</span>
+                            <span className={`font-mono font-bold ${locationStatus.distance > LOCATION_RADIUS ? 'text-destructive' : 'text-green-600 dark:text-green-400'}`}>
+                                {locationStatus.distance?.toFixed(0)}m / {LOCATION_RADIUS}m
+                            </span>
+                            </>
+                        )}
                     </div>
                 )}
             </div>
 
             <button 
-                onClick={() => window.location.reload()}
-                className="w-full text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors py-3 rounded"
+                onClick={() => checkLocation(currentIp)}
+                className="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold py-3 text-sm transition-colors mb-2 rounded shadow-lg shadow-blue-500/20"
                 style={{ 
                   boxSizing: 'border-box',
                   borderRadius: '12px',
@@ -292,7 +298,17 @@ const NetworkGuard = ({ children }) => {
                   cursor: 'pointer'
                 }}
             >
-                {t('retry')}
+                <div className="flex items-center justify-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    <span>{t('retry')} Location</span>
+                </div>
+            </button>
+            
+            <button 
+                onClick={() => window.location.reload()}
+                className="w-full text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors py-2 rounded"
+            >
+                Reload Page
             </button>
         </div>
       </Layout>

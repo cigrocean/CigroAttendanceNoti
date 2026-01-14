@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { logAttendance, getTodayAttendance, deleteTodayAttendance, getAttendanceSheetUrl, clearAppCache } from '@/services/googleSheets';
@@ -20,10 +21,13 @@ export default function Dashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [checkInTime, setCheckInTime] = useState(null);
   const [email, setEmail] = useState('');
-  const [welcomeEmail, setWelcomeEmail] = useState('');
+  const [emailPrefix, setEmailPrefix] = useState('');
+  const [emailDomain, setEmailDomain] = useState('@litmers.com');
+  // const [welcomeEmail, setWelcomeEmail] = useState(''); // Deprecated
   const [manualTime, setManualTime] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [manualConfirmOpen, setManualConfirmOpen] = useState(false);
+  const [instantConfirmOpen, setInstantConfirmOpen] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [sheetUrl, setSheetUrl] = useState(`https://docs.google.com/spreadsheets/d/${import.meta.env.VITE_GOOGLE_SHEET_ID}`);
@@ -77,14 +81,16 @@ export default function Dashboard() {
   }, []);
 
   const handleLogin = async () => {
-    if (!welcomeEmail.trim()) return;
+    if (!emailPrefix.trim()) return;
+    const fullEmail = `${emailPrefix.trim()}${emailDomain}`;
+    
     setIsLoading(true);
     
     // Trigger sync
     try {
-        const date = await getTodayAttendance(welcomeEmail);
-        setEmail(welcomeEmail);
-        localStorage.setItem('cigr_email', welcomeEmail);
+        const date = await getTodayAttendance(fullEmail);
+        setEmail(fullEmail);
+        localStorage.setItem('cigr_email', fullEmail);
         
         if (date) {
             setCheckInTime(date);
@@ -104,7 +110,8 @@ export default function Dashboard() {
       clearAppCache();
       
       setEmail('');
-      setWelcomeEmail('');
+      setEmailPrefix('');
+      
       setCheckInTime(null);
       setLogoutConfirmOpen(false); // Reset dialog state
       toast.info("Logged out successfully");
@@ -187,7 +194,12 @@ export default function Dashboard() {
         toast.error(`Auto check-in only available before ${OFFICE_START_LIMIT}:00. Use Manual Entry.`);
         return;
     }
-    attemptCheckIn(new Date());
+    setInstantConfirmOpen(true);
+  };
+  
+  const confirmInstantCheckIn = () => {
+      attemptCheckIn(new Date());
+      setInstantConfirmOpen(false);
   };
   
   const handleClearCheckIn = () => {
@@ -274,18 +286,29 @@ export default function Dashboard() {
                   <CardContent className="space-y-8 pt-4">
                       <div className="flex flex-col gap-10">
                           <Label className="text-base font-medium">Email (for notification)</Label>
-                          <Input 
-                            value={welcomeEmail} 
-                            onChange={e => setWelcomeEmail(e.target.value)} 
-                            placeholder="ocean@litmers.com"
-                            className="h-12 text-lg"
-                            onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                          />
+                          <div className="flex gap-2">
+                             <Input 
+                                value={emailPrefix} 
+                                onChange={e => setEmailPrefix(e.target.value)} 
+                                placeholder="ocean"
+                                className="h-12 text-base md:text-base w-[140px] text-right pr-2"
+                                onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                              />
+                              <Select value={emailDomain} onValueChange={setEmailDomain}>
+                                <SelectTrigger className="h-12 text-base flex-1 cursor-pointer">
+                                    <SelectValue placeholder="Select domain" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="@litmers.com">@litmers.com</SelectItem>
+                                    <SelectItem value="@cigro.io">@cigro.io</SelectItem>
+                                </SelectContent>
+                              </Select>
+                          </div>
                       </div>
                       <Button 
                         onClick={handleLogin} 
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold h-12 text-base rounded-xl shadow-lg shadow-blue-900/10 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:grayscale"
-                        disabled={!welcomeEmail.trim() || isLoading}
+                        disabled={!emailPrefix.trim() || isLoading}
                       >
                         {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                         {isLoading ? "Signing In..." : "Sign In"}
@@ -384,12 +407,12 @@ export default function Dashboard() {
             {!checkInTime ? (
                 <div className="flex flex-col gap-6 items-center">
                     <div className="relative">
-                        <div className="absolute inset-0 bg-blue-500 rounded-full blur-xl opacity-20 animate-pulse"></div>
+                        <div className="absolute inset-0 bg-blue-500 rounded-full blur-xl opacity-20 animate-pulse pointer-events-none"></div>
                         <Button 
                             size="lg" 
-                            className="bg-blue-600 hover:bg-blue-700 text-white h-32 w-32 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-105 active:scale-95 flex flex-col items-center justify-center gap-2 border-4 border-blue-100 dark:border-blue-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                            className="relative z-10 bg-blue-600 hover:bg-blue-700 text-white h-32 w-32 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-105 active:scale-95 flex flex-col items-center justify-center gap-2 border-4 border-blue-100 dark:border-blue-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                             onClick={handleNowCheckIn}
-                            disabled={isLoading || currentTime.getHours() >= OFFICE_START_LIMIT}
+                            disabled={isLoading}
                         >
                             {isLoading ? <Loader2 className="w-8 h-8 animate-spin" /> : <Clock className="w-8 h-8" />}
                             <span className="font-bold text-lg">{isLoading ? 'Wait' : 'Check In'}</span>
@@ -439,6 +462,28 @@ export default function Dashboard() {
                                 </p>
                             </div>
                         </details>
+
+                {/* Instant Check-in Confirm Dialog */}
+                <Dialog open={instantConfirmOpen} onOpenChange={setInstantConfirmOpen}>
+                    <DialogContent className="!bg-white dark:!bg-slate-950 text-slate-900 dark:text-slate-50 border-slate-200 dark:border-slate-800 sm:max-w-md z-[100] shadow-2xl">
+                        <DialogHeader>
+                            <DialogTitle>Confirm Instant Check-in</DialogTitle>
+                            <DialogDescription>
+                                Are you sure you want to check in now at <span className="font-bold text-foreground">{format(currentTime, 'HH:mm')}</span>?
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setInstantConfirmOpen(false)} disabled={isLoading}>
+                                Cancel
+                            </Button>
+                            <Button onClick={confirmInstantCheckIn} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50">
+                                {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                                Confirm Check-in
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
                 {/* Manual Confirm Dialog */}
                 <Dialog open={manualConfirmOpen} onOpenChange={setManualConfirmOpen}>
                     <DialogContent className="!bg-white dark:!bg-slate-950 text-slate-900 dark:text-slate-50 border-slate-200 dark:border-slate-800 sm:max-w-md z-[100] shadow-2xl">
