@@ -498,7 +498,7 @@ export default function Dashboard() {
                     </Button>
                 </div>
                 <div className="flex gap-2 w-full">
-                    <Button variant="outline" size="sm" onClick={() => setIsSettingsOpen(true)} className="flex-1 text-muted-foreground hover:text-slate-900 hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
+                    <Button variant="outline" size="sm" onClick={() => setIsSettingsOpen(true)} className="flex-1 text-muted-foreground hover:text-slate-900 dark:hover:text-slate-50 hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
                         <Settings className="w-4 h-4 mr-2" />
                         Settings
                     </Button>
