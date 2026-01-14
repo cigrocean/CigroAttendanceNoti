@@ -554,7 +554,7 @@ const ensurePreferencesSheet = async (accessToken) => {
             addSheet: {
               properties: {
                 title: PREFS_SHEET_TITLE,
-                gridProperties: { rowCount: 1000, columnCount: 4 }
+                gridProperties: { rowCount: 1000, columnCount: 5 }
               }
             }
           }]
@@ -566,7 +566,7 @@ const ensurePreferencesSheet = async (accessToken) => {
     
     // Add Header
     await fetch(
-       `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${PREFS_SHEET_TITLE}!A1:D1:append?valueInputOption=USER_ENTERED`,
+       `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${PREFS_SHEET_TITLE}!A1:E1:append?valueInputOption=USER_ENTERED`,
        {
          method: "POST",
          headers: {
@@ -574,7 +574,7 @@ const ensurePreferencesSheet = async (accessToken) => {
            "Content-Type": "application/json",
          },
          body: JSON.stringify({
-            values: [["Email", "Enabled", "TimeSlot", "LastUpdated"]]
+            values: [["Email", "Enabled", "TimeSlot", "LastUpdated", "LastNotifiedDate"]]
          })
        }
     );
