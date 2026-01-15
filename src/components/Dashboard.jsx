@@ -168,16 +168,13 @@ export default function Dashboard() {
             }
         }
     
-        // 2. Trigger sync
-        const date = await getTodayAttendance(fullEmail);
+    
+        // 2. Trigger sync (Let the Dashboard useEffect handle the fetching/skeleton)
         setEmail(fullEmail);
         localStorage.setItem('cigr_email', fullEmail);
         saveToRecent(emailPrefix.trim());
         
-        if (date) {
-            setCheckInTime(date);
-            toast.success("Restored check-in from cloud");
-        }
+        toast.success("Welcome! Syncing data...");
     } catch (e) {
         toast.error("Failed to login/sync");
     } finally {
