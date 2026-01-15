@@ -49,6 +49,7 @@ const SettingsDialog = ({ open, onOpenChange, email }) => {
             // Defaults
             setEnabled(true);
             setTimeSlot("8");
+            setLastSaved(null); // Clear previous cache
         }
     } catch (e) {
         console.error("Failed to load settings", e);

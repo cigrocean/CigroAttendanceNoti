@@ -707,6 +707,7 @@ export default function Dashboard() {
       </div>
 
       <SettingsDialog 
+        key={email} // Force destroy/remount when user changes
         open={isSettingsOpen} 
         onOpenChange={setIsSettingsOpen} 
         email={email} 
