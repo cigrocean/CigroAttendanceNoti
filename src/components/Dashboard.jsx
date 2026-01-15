@@ -67,27 +67,35 @@ export default function Dashboard() {
     });
   }, []);
 
-  // Load state on mount
+  // Load state on mount or when email changes
   useEffect(() => {
-    const savedEmail = localStorage.getItem('cigr_email');
-    if (!savedEmail) return;
+    // If no email in state (logout), do nothing
+    if (!email) return;
+
+    const savedEmail = email; // or localStorage.getItem('cigr_email');
     
-    setEmail(savedEmail);
+    // Ensure display name is synced if missing
     const savedName = localStorage.getItem('cigr_name');
     if (savedName) setDisplayName(savedName);
     
     const loadData = async () => {
       try {
+        console.log(`fetching data for ${savedEmail}...`);
         // Show cached data immediately (non-blocking)
         const cached = await getTodayAttendance(savedEmail);
         if (cached) {
           setCheckInTime(cached);
+        } else {
+           setCheckInTime(null); // Clear if no cache found (Critical for user switch)
         }
         
         // Then fetch fresh data in background
         const fresh = await getTodayAttendance(savedEmail, true); // skipCache = true
         if (fresh) {
           setCheckInTime(fresh);
+        } else {
+          // If fresh says null (and we had cache), should we clear? Yes.
+          if (!cached) setCheckInTime(null);
         }
       } catch (e) {
         console.warn("Failed to load attendance:", e);
@@ -106,7 +114,7 @@ export default function Dashboard() {
       clearInterval(pollInterval);
       clearInterval(timer);
     };
-  }, []);
+  }, [email]); // Dependency on email ensures re-run on login
 
   const handleLogin = async () => {
     if (!emailPrefix.trim()) return;
