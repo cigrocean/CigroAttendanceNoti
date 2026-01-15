@@ -40,7 +40,10 @@ const SettingsDialog = ({ open, onOpenChange, email }) => {
   const loadSettings = async () => {
     setLoading(true);
     try {
+        console.log(`SettingsDialog: Loading prefs for email="${email}"`);
         const prefs = await getUserPreferences(email);
+        console.log("SettingsDialog: Found prefs:", prefs);
+        
         if (prefs) {
             setEnabled(prefs.enabled);
             setTimeSlot(prefs.timeSlot || "8");
