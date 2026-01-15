@@ -12,6 +12,7 @@ import { format, addHours, set, isAfter, isBefore, parseISO, startOfToday } from
 import { getTranslation } from '@/utils/translations';
 import { useNavigate } from 'react-router-dom';
 import SettingsDialog from '@/components/SettingsDialog';
+import { Skeleton } from "@/components/ui/skeleton";
 
 const OFFICE_START_LIMIT = 10; // 10 AM
 const OFFICE_END_LIMIT = 19; // 7 PM
@@ -38,6 +39,7 @@ export default function Dashboard() {
   // Recent Emails Logic
   const [recentEmails, setRecentEmails] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
 
   useEffect(() => {
     try {
@@ -67,47 +69,50 @@ export default function Dashboard() {
     });
   }, []);
 
-  // Load state on mount or when email changes
+  // 1. Hydrate State (Run Once)
   useEffect(() => {
-    // If no email in state (logout), do nothing
-    if (!email) return;
-
-    const savedEmail = email; // or localStorage.getItem('cigr_email');
+    const savedEmail = localStorage.getItem('cigr_email');
+    if (savedEmail) setEmail(savedEmail);
     
-    // Ensure display name is synced if missing
     const savedName = localStorage.getItem('cigr_name');
     if (savedName) setDisplayName(savedName);
-    
-    const loadData = async () => {
+  }, []);
+
+  // 2. Data Fetching (Run on Email Change)
+  useEffect(() => {
+    if (!email) return;
+
+    const loadData = async (isBackground = false) => {
+      if (!isBackground) setIsInitialLoading(true);
       try {
-        console.log(`fetching data for ${savedEmail}...`);
-        // Show cached data immediately (non-blocking)
-        const cached = await getTodayAttendance(savedEmail);
+        console.log(`fetching data for ${email}...`);
+        
+        // Cache Check
+        const cached = await getTodayAttendance(email);
         if (cached) {
           setCheckInTime(cached);
+          if (!isBackground) setIsInitialLoading(false); // Show early if cache hits
         } else {
-           setCheckInTime(null); // Clear if no cache found (Critical for user switch)
+           if (!isBackground) setCheckInTime(null); 
         }
         
-        // Then fetch fresh data in background
-        const fresh = await getTodayAttendance(savedEmail, true); // skipCache = true
+        // Fresh Fetch
+        const fresh = await getTodayAttendance(email, true); 
         if (fresh) {
           setCheckInTime(fresh);
         } else {
-          // If fresh says null (and we had cache), should we clear? Yes.
           if (!cached) setCheckInTime(null);
         }
       } catch (e) {
         console.warn("Failed to load attendance:", e);
+      } finally {
+        if (!isBackground) setIsInitialLoading(false);
       }
     };
     
-    loadData();
+    loadData(false);
     
-    // Poll every 30 seconds for fresh data
-    const pollInterval = setInterval(loadData, 30000);
-    
-    // Also keep the clock ticking
+    const pollInterval = setInterval(() => loadData(true), 30000);
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     
     return () => {
@@ -484,6 +489,32 @@ export default function Dashboard() {
                     </h1>
                 </div>
             )}
+            
+            {isInitialLoading ? (
+                 <Card className="w-full shadow-xl border-t-4 border-t-muted">
+                    <CardHeader className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between space-y-0 pb-2 gap-4">
+                        <div className="space-y-2">
+                             <Skeleton className="h-8 w-48" />
+                             <Skeleton className="h-4 w-32" />
+                             <Skeleton className="h-5 w-40" />
+                        </div>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <Skeleton className="h-9 w-20" />
+                            <Skeleton className="h-9 w-20" />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-8 pt-6">
+                        <div className="flex flex-col items-center gap-6">
+                            <div className="space-y-2 flex flex-col items-center">
+                                <Skeleton className="h-16 w-32" />
+                                <Skeleton className="h-4 w-24" />
+                            </div>
+                            <Skeleton className="h-32 w-32 rounded-full" />
+                            <Skeleton className="h-4 w-40" />
+                        </div>
+                    </CardContent>
+                 </Card>
+            ) : (
             <Card className="w-full shadow-xl border-t-4 border-t-blue-600">
             {/* Card Content... */}
             <CardHeader className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between space-y-0 pb-2 gap-4">
@@ -711,15 +742,16 @@ export default function Dashboard() {
                 </Dialog>
             </CardContent>
         </Card>
+        )}
         </div>
-      </div>
-
+      {/* Settings Dialog (Must be inside root) */}
       <SettingsDialog 
         key={email} // Force destroy/remount when user changes
         open={isSettingsOpen} 
         onOpenChange={setIsSettingsOpen} 
         email={email} 
       />
+    </div>
     </div>
   );
 
