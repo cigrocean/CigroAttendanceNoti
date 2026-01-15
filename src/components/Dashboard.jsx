@@ -19,6 +19,20 @@ const OFFICE_END_LIMIT = 19; // 7 PM
 const WORK_HOURS = 8;
 const LUNCH_BREAK_HOURS = 1;
 
+// Helper to animate numbers
+const AnimatedNumber = ({ value, className }) => (
+  <div className={className}>
+    {value.toString().split('').map((char, i) => (
+      <span 
+        key={`${i}-${char}`} 
+        className="inline-block animate-blur-in will-change-transform"
+      >
+        {char}
+      </span>
+    ))}
+  </div>
+);
+
 export default function Dashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [checkInTime, setCheckInTime] = useState(null);
@@ -549,9 +563,10 @@ export default function Dashboard() {
             <CardContent className="space-y-8 pt-6">
             {/* Main Status Area */}
             <div className="text-center space-y-2">
-                <div className="text-6xl font-black tracking-widest text-foreground tabular-nums">
-                    {format(currentTime, 'HH:mm')}
-                </div>
+                <AnimatedNumber 
+                   value={format(currentTime, 'HH:mm')} 
+                   className="text-6xl font-black tracking-widest text-foreground tabular-nums flex justify-center"
+                />
                 <div className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Current Time</div>
             </div>
 
@@ -679,13 +694,16 @@ export default function Dashboard() {
                     <div className="space-y-2">
                         <div className="flex justify-between text-xs font-medium text-muted-foreground">
                             <span>Progress</span>
-                            <span>{Math.round(progress)}%</span>
+                            <AnimatedNumber value={`${Math.round(progress)}%`} className="flex" />
                         </div>
-                        <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden relative">
+                             {/* Glossy Shimmer Logic */}
                             <div 
-                                className="h-full bg-blue-600 dark:bg-blue-500 transition-all duration-1000 ease-out" 
+                                className="h-full bg-blue-600 dark:bg-blue-500 transition-all duration-1000 ease-out relative overflow-hidden" 
                                 style={{ width: `${progress}%` }}
-                            />
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-full -translate-x-full animate-[shimmer_2s_infinite]"></div>
+                            </div>
                         </div>
                     </div>
 
