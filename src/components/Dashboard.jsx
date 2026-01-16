@@ -188,7 +188,7 @@ export default function Dashboard() {
         localStorage.setItem('cigr_email', fullEmail);
         saveToRecent(emailPrefix.trim());
         
-        toast.success("Welcome! Syncing data...");
+        // toast.success("Welcome! Syncing data..."); // REMOVED
     } catch (e) {
         toast.error("Failed to login/sync");
     } finally {
@@ -354,7 +354,7 @@ export default function Dashboard() {
                 */
                 
                 localStorage.setItem(notifiedKey, 'true');
-                toast.success("Checkout notification sent to Flow Bot!");
+                toast.success("Checkout notification sent to Workflows!");
              } catch (e) {
                  console.error("Failed to send notification", e);
              }
@@ -488,16 +488,7 @@ export default function Dashboard() {
 
       <div className="flex-1 flex flex-col items-center justify-center w-full">
         <div className="w-full max-w-lg flex flex-col gap-3">
-            {/* Disclaimer Section */}
-            <div className="mb-6 p-4 rounded-xl border border-amber-200/50 bg-amber-50/80 dark:bg-amber-950/20 dark:border-amber-800/30 flex gap-3 items-start animate-in fade-in slide-in-from-top-2 duration-700">
-                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
-                <div className="text-sm text-amber-900 dark:text-amber-200/90">
-                    <p className="font-semibold mb-1 text-amber-950 dark:text-amber-100">Disclaimer</p>
-                    <p className="leading-relaxed opacity-90">
-                        This is a personal efficiency tool, <strong>not an official HR platform</strong>. It <strong>does not sync with company attendance records</strong>, so you are <strong>still required</strong> to perform your official manual check-in.
-                    </p>
-                </div>
-            </div>
+
 
             {displayName && (
                 <div className="animate-in fade-in slide-in-from-left-2 duration-500 px-1">
@@ -766,6 +757,17 @@ export default function Dashboard() {
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
+
+                {/* Disclaimer Section (Bottom) */}
+                <div className="mt-8 p-4 rounded-xl border border-amber-200/50 bg-amber-50/80 dark:bg-amber-950/20 dark:border-amber-800/30 flex gap-3 items-start animate-in fade-in slide-in-from-bottom-2 duration-700 delay-200">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
+                    <div className="text-sm text-amber-900 dark:text-amber-200/90">
+                        <p className="font-semibold mb-1 text-amber-950 dark:text-amber-100">Disclaimer</p>
+                        <p className="leading-relaxed opacity-90">
+                           This is a personal efficiency tool, <strong>not an official HR platform</strong>. It <strong>does not sync with company attendance records</strong>, so you are <strong>still required</strong> to perform your official manual check-in.
+                        </p>
+                    </div>
+                </div>
 
             </CardContent>
         </Card>

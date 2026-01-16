@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, RefreshCw } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ArrowLeft, Loader2, RefreshCw, Search } from 'lucide-react';
 import { getAllAttendance } from '@/services/googleSheets';
 import { format, parseISO, addHours } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
 export default function AdminDashboard() {
   const [data, setData] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -58,6 +60,18 @@ export default function AdminDashboard() {
               <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
             </div>
           ) : (
+            <div className="space-y-4">
+               {/* Search Bar */}
+               <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search by email..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+               </div>
+
             <div className="rounded-md border">
               <div className="relative w-full overflow-auto">
                 <table className="w-full caption-bottom text-sm text-left">
@@ -70,12 +84,20 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="[&_tr:last-child]:border-0">
-                    {data.length === 0 ? (
+                    {data.filter(row => 
+                        (row.email && row.email.toLowerCase().includes(searchQuery.toLowerCase()))
+                    ).length === 0 ? (
                         <tr>
-                            <td colSpan={4} className="p-4 text-center text-muted-foreground">No records found</td>
+                            <td colSpan={4} className="p-4 text-center text-muted-foreground">
+                                {searchQuery ? 'No matching records found' : 'No records found'}
+                            </td>
                         </tr>
                     ) : (
-                        data.map((row, i) => (
+                        data
+                        .filter(row => 
+                            (row.email && row.email.toLowerCase().includes(searchQuery.toLowerCase()))
+                        )
+                        .map((row, i) => (
                         <tr key={i} className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
                             <td className="p-4 align-middle font-medium">{row.email}</td>
                             <td className="p-4 align-middle">{row.checkInTime ? format(parseISO(row.checkInTime), 'HH:mm:ss') : '-'}</td>
@@ -89,6 +111,7 @@ export default function AdminDashboard() {
                   </tbody>
                 </table>
               </div>
+            </div>
             </div>
           )}
         </CardContent>
