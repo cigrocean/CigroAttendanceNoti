@@ -38,7 +38,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center py-12 px-4 animate-in fade-in duration-500">
-      <Card className="w-full max-w-4xl shadow-xl">
+      <Card className="w-full max-w-md md:max-w-4xl lg:max-w-6xl shadow-xl">
         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <CardTitle className="text-2xl font-bold">Attendance Records</CardTitle>
