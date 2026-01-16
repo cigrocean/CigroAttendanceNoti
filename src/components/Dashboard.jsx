@@ -487,7 +487,7 @@ export default function Dashboard() {
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center w-full">
-        <div className="w-full max-w-lg flex flex-col gap-3">
+        <div className="w-full max-w-md md:max-w-4xl lg:max-w-6xl flex flex-col gap-3">
 
 
             {displayName && (
