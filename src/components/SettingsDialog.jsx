@@ -22,6 +22,7 @@ import { getUserPreferences, updateUserPreferences } from '../services/googleShe
 import { toast } from 'sonner';
 import { Loader2, Bell } from 'lucide-react';
 import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
 import { getTranslation } from '../utils/translations';
 import { useLanguage } from '../hooks/useLanguage';
 
@@ -141,7 +142,7 @@ const SettingsDialog = ({ open, onOpenChange, email }) => {
             <div className="px-1 pb-2">
                 <p className="text-[10px] text-muted-foreground text-center">
                     {lastSaved 
-                        ? `${t('savedToCloud')}: ${format(new Date(lastSaved), "MMM d, yyyy 'at' h:mm a")}` 
+                        ? `${t('savedToCloud')}: ${format(new Date(lastSaved), language === 'vi' ? "d MMM, yyyy 'lúc' HH:mm" : "MMM d, yyyy 'at' h:mm a", { locale: language === 'vi' ? vi : undefined })}` 
                         : ""}
                 </p>
             </div>

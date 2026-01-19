@@ -45,12 +45,7 @@ const Layout = ({ children }) => {
           padding: '32px 24px' 
         }} 
       >
-        <button 
-            onClick={() => setLanguage(language === 'en' ? 'vi' : 'en')}
-            className="absolute top-4 right-4 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-full bg-muted/50 hover:bg-muted"
-        >
-            {language === 'en' ? '🇻🇳 VI' : '🇺🇸 EN'}
-        </button>
+
         {children}
       </div>
     </div>

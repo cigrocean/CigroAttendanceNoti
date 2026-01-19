@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { toast } from 'sonner';
 import { Clock, CheckCircle, AlertTriangle, Settings, LogOut, Loader2, FileText, Globe } from 'lucide-react';
 import { format, addHours, set, isAfter, isBefore, parseISO, startOfToday } from 'date-fns';
+import { vi } from 'date-fns/locale';
 import { getTranslation } from '@/utils/translations';
 import { useNavigate } from 'react-router-dom';
 import SettingsDialog from '@/components/SettingsDialog';
@@ -525,7 +526,9 @@ export default function Dashboard() {
             <CardHeader className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between space-y-0 pb-2 gap-4">
             <div>
                 <CardTitle className="text-2xl font-bold">{t('officeCheckIn')}</CardTitle>
-                <CardDescription>{format(currentTime, 'EEEE, MMMM do yyyy')}</CardDescription>
+                <CardDescription>
+                    {format(currentTime, language === 'vi' ? 'EEEE, d MMMM, yyyy' : 'EEEE, MMMM do yyyy', { locale: language === 'vi' ? vi : undefined })}
+                </CardDescription>
                 <div className="text-xs text-muted-foreground mt-1 font-mono bg-muted/50 px-2 py-0.5 rounded-md inline-block w-fit truncate max-w-[200px]" title={email}>
                 {email}
                 </div>
