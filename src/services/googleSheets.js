@@ -223,6 +223,10 @@ export const authorizeNetwork = async (ip) => {
     if (!response.ok) throw new Error(await response.text());
     
     console.log(`✅ Authorized IP: ${ip}`);
+    
+    // Clear cache immediately so the next check fetches the updated list
+    localStorage.removeItem(CACHE_KEYS.NETWORKS);
+    
     return true;
   } catch (e) {
     console.error("Failed to authorize network:", e);
