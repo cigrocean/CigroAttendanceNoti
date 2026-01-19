@@ -90,9 +90,14 @@ const NetworkGuard = ({ children }) => {
 
        try {
          const authorizedOps = await fetchAuthorizedNetworks();
+         console.log("Current IP:", ip);
+         console.log("Authorized List:", authorizedOps);
+         
          if (authorizedOps.includes(ip)) {
              setStatus('authorized');
              return;
+         } else {
+             console.warn("IP mismatch. Your IP is not in the authorized list.");
          }
        } catch (netErr) {
          console.warn("Failed to check authorized networks, falling back to location:", netErr);

@@ -181,8 +181,10 @@ export const fetchAuthorizedNetworks = async () => {
     const data = await response.json();
     if (!data.values || data.values.length <= 1) return []; // Header only
 
-    // Return simple array of IPs (skip header)
-    const networks = data.values.slice(1).map(row => row[0]?.trim()).filter(ip => ip);
+    // Return simple array of IPs (handle header safely)
+    const networks = data.values
+        .map(row => row[0]?.trim())
+        .filter(ip => ip && ip !== 'IP Address');
     
     // Save to cache
     saveToCache(CACHE_KEYS.NETWORKS, networks);

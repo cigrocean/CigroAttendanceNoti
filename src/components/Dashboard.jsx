@@ -18,6 +18,7 @@ import { useLanguage } from '@/hooks/useLanguage';
 
 const OFFICE_START_LIMIT = 10; // 10 AM
 const OFFICE_END_LIMIT = 19; // 7 PM
+const OFFICE_OPEN_HOUR = 8; // 8 AM strict open
 const WORK_HOURS = 8;
 const LUNCH_BREAK_HOURS = 1;
 
@@ -575,7 +576,7 @@ export default function Dashboard() {
                             size="lg" 
                             className="relative z-10 bg-blue-600 hover:bg-blue-700 text-white h-32 w-32 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-105 active:scale-95 flex flex-col items-center justify-center gap-2 border-4 border-blue-100 dark:border-blue-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                             onClick={handleNowCheckIn}
-                            disabled={isLoading}
+                            disabled={isLoading || currentTime.getHours() < OFFICE_OPEN_HOUR}
                         >
                             {isLoading ? <Loader2 className="w-8 h-8 animate-spin" /> : <Clock className="w-8 h-8" />}
                             <span className="font-bold text-lg">{isLoading ? 'Wait' : t('checkIn')}</span>
@@ -598,6 +599,13 @@ export default function Dashboard() {
                         </p>
                     )}
                     
+                    {currentTime.getHours() < OFFICE_OPEN_HOUR && (
+                        <p className="text-sm text-amber-600 dark:text-amber-400 font-medium bg-amber-50 dark:bg-amber-950/30 px-4 py-2 rounded-lg flex items-center justify-center gap-2">
+                           <Clock className="w-4 h-4" />
+                           {t('tooEarly')}
+                        </p>
+                    )}
+                    
                     <div className="w-full pt-4 border-t border-border">
                         <details className="group cursor-pointer">
                             <summary className="text-xs font-medium text-muted-foreground uppercase tracking-widest text-center hover:text-foreground transition-colors list-none">
@@ -610,12 +618,12 @@ export default function Dashboard() {
                                         value={manualTime} 
                                         onChange={e => setManualTime(e.target.value)} 
                                         className="flex-1 text-center font-mono text-lg tracking-widest"
-                                        disabled={currentTime.getHours() >= OFFICE_END_LIMIT}
+                                        disabled={currentTime.getHours() >= OFFICE_END_LIMIT || currentTime.getHours() < OFFICE_OPEN_HOUR}
                                     />
                                     <Button 
                                         variant="secondary" 
                                         onClick={handleManualCheckInTrigger}
-                                        disabled={currentTime.getHours() >= OFFICE_END_LIMIT || isLoading}
+                                        disabled={currentTime.getHours() >= OFFICE_END_LIMIT || currentTime.getHours() < OFFICE_OPEN_HOUR || isLoading}
                                         >
                                             {t('setCheckIn')}
                                         </Button>
