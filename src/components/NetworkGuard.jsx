@@ -29,37 +29,46 @@ const getDistanceFromLatLonInMeters = (lat1, lon1, lat2, lon2) => {
   return R * c; 
 };
 
-const Layout = ({ children }) => (
-  <div className="fixed inset-0 z-[9999] bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
-    <div 
-      className="bg-card text-card-foreground shadow-2xl animate-in fade-in zoom-in-95 duration-200"
-      style={{ 
-        boxSizing: 'border-box',
-        width: '100%',
-        maxWidth: '320px',
-        borderRadius: '24px',
-        border: '1px solid hsl(var(--border))',
-        overflow: 'hidden',
-        padding: '32px 24px' 
-      }} 
-    >
-      {children}
+const Layout = ({ children }) => {
+  const { language, setLanguage } = useLanguage();
+  return (
+    <div className="fixed inset-0 z-[9999] bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
+      <div 
+        className="bg-card text-card-foreground shadow-2xl animate-in fade-in zoom-in-95 duration-200 relative"
+        style={{ 
+          boxSizing: 'border-box',
+          width: '100%',
+          maxWidth: '320px',
+          borderRadius: '24px',
+          border: '1px solid hsl(var(--border))',
+          overflow: 'hidden',
+          padding: '32px 24px' 
+        }} 
+      >
+        <button 
+            onClick={() => setLanguage(language === 'en' ? 'vi' : 'en')}
+            className="absolute top-4 right-4 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-full bg-muted/50 hover:bg-muted"
+        >
+            {language === 'en' ? '🇻🇳 VI' : '🇺🇸 EN'}
+        </button>
+        {children}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const NetworkGuard = ({ children }) => {
   const { language } = useLanguage();
-  // Status: loading, authorized, unauthorized_ip (needs password), unauthorized_location, error
+  // ... (state remains same)
   const [status, setStatus] = useState('loading');
   const [currentIp, setCurrentIp] = useState('');
-  const [locationStatus, setLocationStatus] = useState(null); // { distance, accuracy, error }
+  const [locationStatus, setLocationStatus] = useState(null); 
   const [isCheckingLocation, setIsCheckingLocation] = useState(false);
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState(false);
   const [isAuthorizing, setIsAuthorizing] = useState(false);
   const [errorDetails, setErrorDetails] = useState('');
-  const [permissionState, setPermissionState] = useState(null); // 'granted', 'prompt', 'denied'
+  const [permissionState, setPermissionState] = useState(null);
 
   useEffect(() => {
     if (navigator.permissions && navigator.permissions.query) {
@@ -73,16 +82,17 @@ const NetworkGuard = ({ children }) => {
     }
   }, []);
 
+  const t = (key, params) => getTranslation(key, language, params);
+
   const checkAccess = async () => {
+    // ... (checkAccess logic mostly same, error messages could be translated but low priority as checking logs mostly)
     try {
-       // 1. Get Public IP
        const ipRes = await fetch('https://api.ipify.org?format=json');
        if (!ipRes.ok) throw new Error('Failed to fetch IP');
        const { ip } = await ipRes.json();
        setCurrentIp(ip);
        console.log('Network Check - Current IP:', ip);
 
-       // 2. Check Authorized Networks (Shared Sheet)
        try {
          const authorizedOps = await fetchAuthorizedNetworks();
          if (authorizedOps.includes(ip)) {
@@ -93,7 +103,6 @@ const NetworkGuard = ({ children }) => {
          console.warn("Failed to check authorized networks, falling back to location:", netErr);
        }
 
-       // 3. New IP detected -> Check Location first
        console.log('IP not authorized. Checking location...');
        checkLocation(ip);
 
@@ -119,9 +128,9 @@ const NetworkGuard = ({ children }) => {
      }
 
      setIsCheckingLocation(true);
-     setLocationStatus(null); // Clear previous status/error
+     setLocationStatus(null);
      const startTime = Date.now();
-     const MIN_DELAY = 800; // Minimum spinner duration in ms
+     const MIN_DELAY = 800;
 
      const handleCompletion = (callback) => {
         const elapsed = Date.now() - startTime;
@@ -140,11 +149,10 @@ const NetworkGuard = ({ children }) => {
                 );
 
                 setLocationStatus({ distance, accuracy });
-                console.log(`Location Check: ${distance.toFixed(0)}m (Limit: ${LOCATION_RADIUS}m)`);
+                console.log(`Location Check: ${distance.toFixed(0)}m`);
                 
-                // Show feedback
                 toast.dismiss(); 
-                toast.success(`Location updated: ${distance.toFixed(0)}m away`);
+                toast.success(t('locationUpdated', { dist: distance.toFixed(0) }));
 
                 if (distance <= LOCATION_RADIUS) {
                     setStatus('unauthorized_ip');
@@ -159,11 +167,9 @@ const NetworkGuard = ({ children }) => {
                 console.error("Location error:", err);
                 let msg = err.message;
 
-                if (err.code === 1) {
-                    msg = "Permission denied. Please reset browser permissions.";
-                }
-                if (err.code === 2) msg = "Location unavailable. Try moving to a better signal area.";
-                if (err.code === 3) msg = "Location timed out. Please retry.";
+                if (err.code === 1) msg = "Permission denied. Please reset browser permissions.";
+                if (err.code === 2) msg = "Location unavailable.";
+                if (err.code === 3) msg = "Location timed out.";
                 
                 setErrorDetails(msg);
                 setLocationStatus({ error: msg });
@@ -177,6 +183,7 @@ const NetworkGuard = ({ children }) => {
      );
   };
 
+  // ... handlePasswordSubmit same ...
   const handlePasswordSubmit = async (e) => {
       e.preventDefault();
       setPasswordError(false);
@@ -185,7 +192,6 @@ const NetworkGuard = ({ children }) => {
       if (password === OFFICE_WIFI_PASSWORD) {
           setIsAuthorizing(true);
           try {
-              // Write to Sheet
               await authorizeNetwork(currentIp);
               setStatus('authorized');
           } catch (e) {
@@ -207,8 +213,6 @@ const NetworkGuard = ({ children }) => {
   }, []);
 
   if (status === 'authorized') return children;
-
-  const t = (key) => getTranslation(key, language);
 
   if (status === 'loading') {
       return (
@@ -332,16 +336,13 @@ const NetworkGuard = ({ children }) => {
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-4 mx-auto max-w-[320px]">
                 <div className="flex flex-col items-center gap-2 text-center">
                     <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
-                        Location Access Required
+                        {t('locationRequired')}
                     </p>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                        Please check your browser settings<br/>
-                        (usually the <Lock className="w-3 h-3 inline align-middle mb-0.5" />)
-                        <br/>to allow location, then reload.
+                        {t('checkSettings')}
                     </p>
                 </div>
             </div>
-            
             
             <button 
                 onClick={() => checkLocation(currentIp)}
@@ -352,12 +353,12 @@ const NetworkGuard = ({ children }) => {
                     {permissionState === 'denied' ? (
                         <>
                         <ShieldAlert className="w-4 h-4" />
-                        <span>Permission Blocked - Reset Settings</span>
+                        <span>{t('accessDenied')} - {t('checkSettings')}</span>
                         </>
                     ) : (
                         <>
                         {isCheckingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
-                        <span>{isCheckingLocation ? "Checking..." : "Request Location Access"}</span>
+                        <span>{isCheckingLocation ? t('checking') : t('requestLocation')}</span>
                         </>
                     )}
                 </div>
@@ -367,7 +368,7 @@ const NetworkGuard = ({ children }) => {
                 onClick={() => window.location.reload()}
                 className="w-full text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors py-2 rounded"
             >
-                Reload Page
+                {t('reloadPage')}
             </button>
         </div>
       </Layout>

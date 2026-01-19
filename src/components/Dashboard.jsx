@@ -7,12 +7,13 @@ import { logAttendance, getTodayAttendance, deleteTodayAttendance, getAttendance
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Clock, CheckCircle, AlertTriangle, Settings, LogOut, Loader2, FileText } from 'lucide-react';
+import { Clock, CheckCircle, AlertTriangle, Settings, LogOut, Loader2, FileText, Globe } from 'lucide-react';
 import { format, addHours, set, isAfter, isBefore, parseISO, startOfToday } from 'date-fns';
 import { getTranslation } from '@/utils/translations';
 import { useNavigate } from 'react-router-dom';
 import SettingsDialog from '@/components/SettingsDialog';
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLanguage } from '@/hooks/useLanguage';
 
 const OFFICE_START_LIMIT = 10; // 10 AM
 const OFFICE_END_LIMIT = 19; // 7 PM
@@ -34,12 +35,14 @@ const AnimatedNumber = ({ value, className }) => (
 );
 
 export default function Dashboard() {
+  const { language, setLanguage } = useLanguage();
+  const t = (key, params) => getTranslation(key, language, params);
+
   const [currentTime, setCurrentTime] = useState(new Date());
   const [checkInTime, setCheckInTime] = useState(null);
   const [email, setEmail] = useState('');
   const [emailPrefix, setEmailPrefix] = useState('');
   const [emailDomain, setEmailDomain] = useState('@litmers.com');
-  // const [welcomeEmail, setWelcomeEmail] = useState(''); // Deprecated
   const [displayName, setDisplayName] = useState('');
   const [manualTime, setManualTime] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -75,8 +78,6 @@ export default function Dashboard() {
   
   const fullEmail = `${emailPrefix}${emailDomain}`;
   
-  const t = (key) => getTranslation(key);
-
   useEffect(() => {
     getAttendanceSheetUrl().then(url => {
         setSheetUrl(url);
@@ -133,7 +134,7 @@ export default function Dashboard() {
       clearInterval(pollInterval);
       clearInterval(timer);
     };
-  }, [email]); // Dependency on email ensures re-run on login
+  }, [email]); 
 
   const handleLogin = async () => {
     if (!emailPrefix.trim()) return;
@@ -148,7 +149,7 @@ export default function Dashboard() {
             try {
                 const response = await fetch(webhookUrl, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' }, // Proxied
                     body: JSON.stringify({ 
                         email: fullEmail,
                         type: 'validate-user' 
@@ -159,7 +160,7 @@ export default function Dashboard() {
                     const result = await response.json();
                     
                     if (result.valid === false) {
-                        toast.error("Access Denied: Email not found in Organization.");
+                        toast.error(t('emailNotFound'));
                         setIsLoading(false);
                         return; // Generic stop
                     }
@@ -168,29 +169,22 @@ export default function Dashboard() {
                         localStorage.setItem('cigr_name', result.name);
                         setDisplayName(result.name);
                         const firstName = result.name.split(' ')[0].replace(/[,.]/g, '');
-                        toast.success(`Welcome back, ${firstName}!`);
+                        toast.success(t('welcomeBack', { name: firstName }));
                     }
                 }
             } catch (validationError) {
                 console.warn("Validation skipped or failed (Flow might be down)", validationError);
-                // Optional: blocking or non-blocking? 
-                // Plan implies blocking, but if Flow is down, user is locked out.
-                // Let's assume strict blocking for now as requested.
-                // toast.error("Validation service unreachable.");
-                // setIsLoading(false);
-                // return;
+                // toast.error(t('validationFailed'));
             }
         }
     
-    
-        // 2. Trigger sync (Let the Dashboard useEffect handle the fetching/skeleton)
+        // 2. Trigger sync
         setEmail(fullEmail);
         localStorage.setItem('cigr_email', fullEmail);
         saveToRecent(emailPrefix.trim());
         
-        // toast.success("Welcome! Syncing data..."); // REMOVED
     } catch (e) {
-        toast.error("Failed to login/sync");
+        toast.error(t('error'));
     } finally {
         setIsLoading(false);
     }
@@ -207,16 +201,13 @@ export default function Dashboard() {
       
       setCheckInTime(null);
       setLogoutConfirmOpen(false); // Reset dialog state
-      toast.info("Logged out successfully");
+      toast.info(t('loggedOut'));
   };
 
   const getEstimatedEndTime = (startTime) => {
     if (!startTime) return null;
     let end = addHours(startTime, WORK_HOURS);
     
-    // If started before 12:00, add 1 hour lunch break
-    // Logic: If the work period overlaps with 12:00-13:00, add 1 hour.
-    // Simplification: If start < 12:00, add 1 hour.
     if (startTime.getHours() < 12) {
       end = addHours(end, LUNCH_BREAK_HOURS);
     }
@@ -230,14 +221,13 @@ export default function Dashboard() {
     try {
         await fetch(webhookUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({ 
                 email: email, 
                 checkInTime: date.toISOString(),
                 type: 'check-in' 
             })
         });
-        // We don't show toast for this to avoid clutter, just log it
         console.log("Check-in notification sent");
     } catch (e) {
         console.error("Failed to send check-in notification", e);
@@ -249,7 +239,7 @@ export default function Dashboard() {
     
     // Check constraints
     if (hour >= OFFICE_END_LIMIT) {
-      toast.error(`Cannot check in after ${OFFICE_END_LIMIT}:00`);
+      toast.error(t('checkInClosed'));
       return;
     }
 
@@ -258,12 +248,12 @@ export default function Dashboard() {
     try {
         await logAttendance(email, date);
         setCheckInTime(date);
-        toast.success(`Checked in at ${format(date, 'HH:mm')}`);
+        toast.success(t('checkInAt', { time: format(date, 'HH:mm') }));
         
         // Fire and forget notification
         notifyCheckIn(email, date);
     } catch (e) {
-        toast.error("Failed to save check-in. Please try again.");
+        toast.error(t('error'));
     } finally {
         setIsLoading(false);
     }
@@ -284,7 +274,7 @@ export default function Dashboard() {
   const handleNowCheckIn = () => {
     const hour = new Date().getHours();
     if (hour >= OFFICE_START_LIMIT) {
-        toast.error(`Auto check-in only available before ${OFFICE_START_LIMIT}:00. Use Manual Entry.`);
+        toast.error(t('autoCheckInLimit', { time: `${OFFICE_START_LIMIT}:00` }));
         return;
     }
     setInstantConfirmOpen(true);
@@ -305,9 +295,9 @@ export default function Dashboard() {
           await deleteTodayAttendance(email);
           setCheckInTime(null);
           setResetConfirmOpen(false);
-          toast.success("Check-in cleared and deleted from cloud");
+          toast.success(t('checkInCleared'));
       } catch (e) {
-          toast.error("Failed to delete from cloud. Please try again.");
+          toast.error(t('error'));
       } finally {
           setIsLoading(false);
       }
@@ -337,24 +327,11 @@ export default function Dashboard() {
          if (!hasNotified && currentTime >= endTime) {
              console.log("Triggering Notification...");
              try {
-                // Call API
-                const webhookUrl = import.meta.env.VITE_MS_FLOW_WEBHOOK;
-                if (!webhookUrl) {
-                    console.warn("No Webhook URL configured");
-                    return;
-                }
-                
-                /*
-                // Handled by Google Apps Script server-side to prevent duplicates
-                await fetch(webhookUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: email, checkInTime: checkInTime.toISOString() })
-                });
-                */
+                // Not actually sending here anymore (handled differently or logic preserved)
+                // But leaving localstorage lock
                 
                 localStorage.setItem(notifiedKey, 'true');
-                toast.success("Checkout notification sent to Workflows!");
+                toast.success(t('checkOutSuccess'));
              } catch (e) {
                  console.error("Failed to send notification", e);
              }
@@ -368,17 +345,34 @@ export default function Dashboard() {
   }, [checkInTime, endTime, email]);
 
 
+  // Language Toggle
+  const LanguageToggleBtn = () => (
+    <Button 
+        variant="ghost" 
+        size="icon" 
+        className="fixed top-4 right-4 z-[9999] bg-white/50 dark:bg-black/50 backdrop-blur-md shadow-sm hover:bg-white/80 dark:hover:bg-black/80 rounded-full w-10 h-10"
+        onClick={() => setLanguage(language === 'en' ? 'vi' : 'en')}
+    >
+        <div className="flex flex-col items-center justify-center">
+            <span className="text-[10px] font-bold leading-none mb-0.5">{language === 'en' ? 'EN' : 'VN'}</span>
+            <Globe className="w-3 h-3 opacity-70" />
+        </div>
+    </Button>
+  );
+
+
   if (!email) {
       return (
-          <div className="flex min-h-screen items-center justify-center p-4 bg-background">
+          <div className="flex min-h-screen items-center justify-center p-4 bg-background relative">
+              <LanguageToggleBtn />
               <Card className="w-full max-w-md">
                   <CardHeader>
-                      <CardTitle>Welcome</CardTitle>
-                      <CardDescription>Please enter your Email to continue</CardDescription>
+                      <CardTitle>{t('welcomeTitle')}</CardTitle>
+                      <CardDescription>{t('enterEmailDesc')}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-8 pt-4">
                       <div className="flex flex-col gap-10">
-                          <Label className="text-base font-medium">Email (for notification)</Label>
+                          <Label className="text-base font-medium">{t('emailLabel')}</Label>
                           <div className="flex gap-2 relative z-20">
                              <div className="relative">
                                 <Input 
@@ -414,7 +408,7 @@ export default function Dashboard() {
                              </div>
                               <Select value={emailDomain} onValueChange={setEmailDomain}>
                                 <SelectTrigger className="h-12 text-base flex-1 cursor-pointer">
-                                    <SelectValue placeholder="Select domain" />
+                                    <SelectValue placeholder={t('emailDomain')} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="@litmers.com">@litmers.com</SelectItem>
@@ -429,7 +423,7 @@ export default function Dashboard() {
                         disabled={!emailPrefix.trim() || isLoading}
                       >
                         {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                        {isLoading ? "Signing In..." : "Sign In"}
+                        {isLoading ? t('loading') : t('signIn')}
                       </Button>
                   </CardContent>
               </Card>
@@ -439,16 +433,16 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8 flex flex-col items-center relative">
+      <LanguageToggleBtn />
+      
       {/* Loading Overlay */}
       {isLoading && (
         <div className="fixed inset-0 bg-background/95 backdrop-blur-xl z-50 flex flex-col items-center justify-center animate-in fade-in duration-200">
            <Loader2 className="h-16 w-16 animate-spin text-blue-600 dark:text-blue-500 mb-4" />
-           <p className="text-muted-foreground font-medium animate-pulse">Syncing with cloud...</p>
+           <p className="text-muted-foreground font-medium animate-pulse">{t('processing')}</p>
         </div>
       )}
       
-
-
       {/* Vibe-coded credit */}
       <div className="w-full text-center px-4 mb-4 z-10">
         <div className="inline-block border border-border/50 rounded-md px-3 py-2 bg-muted/30 backdrop-blur-sm shadow-sm pointer-events-auto">
@@ -471,7 +465,7 @@ export default function Dashboard() {
               rel="noopener noreferrer"
               className="underline hover:text-blue-500 transition-colors whitespace-nowrap"
             >
-              Check Meeting Rooms
+              {t('checkMeetingRooms')}
             </a>
             {' · '}
             <a 
@@ -489,15 +483,14 @@ export default function Dashboard() {
       <div className="flex-1 flex flex-col items-center justify-center w-full">
         <div className="w-full max-w-md md:max-w-4xl lg:max-w-6xl flex flex-col gap-3">
 
-
             {displayName && (
                 <div className="animate-in fade-in slide-in-from-left-2 duration-500 px-1">
                     <h1 className="text-lg md:text-xl font-medium text-muted-foreground flex items-center gap-2">
                         {(() => {
                             const h = currentTime.getHours();
-                            if (h < 12) return "Good morning ☀️,";
-                            if (h < 18) return "Good afternoon 🌤️,";
-                            return "Good evening 🌙,";
+                            if (h < 12) return t('goodMorning');
+                            if (h < 18) return t('goodAfternoon');
+                            return t('goodEvening');
                         })()} <span className="text-foreground font-bold">{displayName.split(' ')[0].replace(/[,.]/g, '')}</span>
                     </h1>
                 </div>
@@ -529,10 +522,9 @@ export default function Dashboard() {
                  </Card>
             ) : (
             <Card className="w-full shadow-xl border-t-4 border-t-blue-600">
-            {/* Card Content... */}
             <CardHeader className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between space-y-0 pb-2 gap-4">
             <div>
-                <CardTitle className="text-2xl font-bold">Office Check-in</CardTitle>
+                <CardTitle className="text-2xl font-bold">{t('officeCheckIn')}</CardTitle>
                 <CardDescription>{format(currentTime, 'EEEE, MMMM do yyyy')}</CardDescription>
                 <div className="text-xs text-muted-foreground mt-1 font-mono bg-muted/50 px-2 py-0.5 rounded-md inline-block w-fit truncate max-w-[200px]" title={email}>
                 {email}
@@ -542,21 +534,21 @@ export default function Dashboard() {
                 <div className="flex gap-2 w-full">
                     <Button variant="outline" size="sm" onClick={() => navigate('/records')} className="flex-1 text-muted-foreground hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30 hover:border-purple-200 dark:hover:border-purple-800 transition-colors">
                         <FileText className="w-4 h-4 mr-2" />
-                        Records
+                        {t('records')}
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => window.open(sheetUrl, '_blank')} className="flex-1 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
                         <FileText className="w-4 h-4 mr-2" />
-                        Sheet
+                        {t('sheet')}
                     </Button>
                 </div>
                 <div className="flex gap-2 w-full">
                     <Button variant="outline" size="sm" onClick={() => setIsSettingsOpen(true)} className="flex-1 text-muted-foreground hover:text-slate-900 dark:hover:text-slate-50 hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
                         <Settings className="w-4 h-4 mr-2" />
-                        Settings
+                        {t('settings')}
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => setLogoutConfirmOpen(true)} disabled={isLoading} className="flex-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 border-red-200 dark:border-red-900 transition-colors">
                         <LogOut className="w-4 h-4 mr-2" />
-                        Sign Out
+                        {t('signOut')}
                     </Button>
                 </div>
             </div>
@@ -569,7 +561,7 @@ export default function Dashboard() {
                    value={format(currentTime, 'HH:mm')} 
                    className="text-6xl font-black tracking-widest text-foreground tabular-nums flex justify-center"
                 />
-                <div className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Current Time</div>
+                <div className="text-sm font-medium text-muted-foreground uppercase tracking-widest">{t('currentTime')}</div>
             </div>
 
             {!checkInTime ? (
@@ -583,30 +575,30 @@ export default function Dashboard() {
                             disabled={isLoading}
                         >
                             {isLoading ? <Loader2 className="w-8 h-8 animate-spin" /> : <Clock className="w-8 h-8" />}
-                            <span className="font-bold text-lg">{isLoading ? 'Wait' : 'Check In'}</span>
+                            <span className="font-bold text-lg">{isLoading ? 'Wait' : t('checkIn')}</span>
                         </Button>
                     </div>
                     {currentTime.getHours() >= OFFICE_START_LIMIT && currentTime.getHours() < OFFICE_END_LIMIT && (
                         <div className="text-center space-y-2">
                             <p className="text-sm text-amber-600 dark:text-amber-400 font-medium bg-amber-50 dark:bg-amber-950/30 px-4 py-2 rounded-lg flex items-center justify-center gap-2">
                                 <AlertTriangle className="w-4 h-4" />
-                                Instant check-in closed after {OFFICE_START_LIMIT}:00 AM
+                                {t('instantClosed', { time: `${OFFICE_START_LIMIT}:00` })}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                                Please use <strong>Manual Entry</strong> below to check in
+                                {t('useManualEntry')}
                             </p>
                         </div>
                     )}
                     {currentTime.getHours() >= OFFICE_END_LIMIT && (
                         <p className="text-sm text-red-500 font-medium bg-red-50 dark:bg-red-950/30 px-3 py-1 rounded-full">
-                            Check-in closed for the day
+                            {t('checkInClosed')}
                         </p>
                     )}
                     
                     <div className="w-full pt-4 border-t border-border">
                         <details className="group cursor-pointer">
                             <summary className="text-xs font-medium text-muted-foreground uppercase tracking-widest text-center hover:text-foreground transition-colors list-none">
-                                Use Manual Entry
+                                {t('manualEntryTrigger')}
                             </summary>
                             <div className="mt-4 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2">
                                 <div className="flex gap-2">
@@ -621,12 +613,14 @@ export default function Dashboard() {
                                         variant="secondary" 
                                         onClick={handleManualCheckInTrigger}
                                         disabled={currentTime.getHours() >= OFFICE_END_LIMIT || isLoading}
-                                        >Set</Button>
+                                        >
+                                            {t('setCheckIn')}
+                                        </Button>
                                 </div>
                                 <p className="text-[10px] text-center text-muted-foreground">
                                     {currentTime.getHours() >= OFFICE_END_LIMIT 
-                                        ? `Check-in closed for the day (after ${OFFICE_END_LIMIT}:00)`
-                                        : `Useful for late check-ins (after ${OFFICE_START_LIMIT}:00)`}
+                                        ? t('checkInClosed')
+                                        : t('manualEntryDesc')}
                                 </p>
                             </div>
                         </details>
@@ -635,18 +629,18 @@ export default function Dashboard() {
                 <Dialog open={instantConfirmOpen} onOpenChange={setInstantConfirmOpen}>
                     <DialogContent className="!bg-white dark:!bg-slate-950 text-slate-900 dark:text-slate-50 border-slate-200 dark:border-slate-800 sm:max-w-md z-[100] shadow-2xl">
                         <DialogHeader>
-                            <DialogTitle>Confirm Instant Check-in</DialogTitle>
+                            <DialogTitle>{t('confirmInstant')}</DialogTitle>
                             <DialogDescription>
-                                Are you sure you want to check in now at <span className="font-bold text-foreground">{format(currentTime, 'HH:mm')}</span>?
+                                {t('confirmInstantDesc', { time: format(currentTime, 'HH:mm') })}
                             </DialogDescription>
                         </DialogHeader>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setInstantConfirmOpen(false)} disabled={isLoading}>
-                                Cancel
+                                {t('cancel')}
                             </Button>
                             <Button onClick={confirmInstantCheckIn} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50">
                                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                                Confirm Check-in
+                                {t('confirm')}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -656,15 +650,15 @@ export default function Dashboard() {
                 <Dialog open={manualConfirmOpen} onOpenChange={setManualConfirmOpen}>
                     <DialogContent className="!bg-white dark:!bg-slate-950 text-slate-900 dark:text-slate-50 border-slate-200 dark:border-slate-800 sm:max-w-md z-[100] shadow-2xl">
                         <DialogHeader>
-                            <DialogTitle>Confirm Manual Entry</DialogTitle>
+                            <DialogTitle>{t('confirmManual')}</DialogTitle>
                             <DialogDescription>
-                                Confirm checking in at <span className="font-bold text-foreground">{manualTime}</span>?
+                                {t('confirmManualDesc', { time: manualTime })}
                             </DialogDescription>
                         </DialogHeader>
                         <DialogFooter>
                             <Button onClick={confirmManualCheckIn} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50">
                                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                                Confirm
+                                {t('confirm')}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -676,15 +670,15 @@ export default function Dashboard() {
                     <div className="bg-green-500/10 dark:bg-green-500/20 border border-green-500/20 dark:border-green-500/30 rounded-2xl p-6 text-center space-y-4">
                         <div className="flex items-center justify-center text-green-600 dark:text-green-400 space-x-2">
                             <CheckCircle className="w-5 h-5" />
-                            <span className="font-semibold">Checked In</span>
+                            <span className="font-semibold">{t('checkInSuccess')}</span>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <div className="text-xs text-green-600/70 dark:text-green-400/70 font-medium uppercase">Start</div>
+                                <div className="text-xs text-green-600/70 dark:text-green-400/70 font-medium uppercase">{t('started')}</div>
                                 <div className="text-xl font-bold text-green-700 dark:text-green-300">{format(checkInTime, 'HH:mm')}</div>
                             </div>
                             <div>
-                                <div className="text-xs text-green-600/70 dark:text-green-400/70 font-medium uppercase">Finish</div>
+                                <div className="text-xs text-green-600/70 dark:text-green-400/70 font-medium uppercase">{t('finished')}</div>
                                 <div className="text-xl font-bold text-green-700 dark:text-green-300">
                                     {endTime ? format(endTime, 'HH:mm') : '--:--'}
                                 </div>
@@ -695,7 +689,7 @@ export default function Dashboard() {
                     {/* Progress Bar */}
                     <div className="space-y-2">
                         <div className="flex justify-between text-xs font-medium text-muted-foreground">
-                            <span>Progress</span>
+                            <span>{t('progress')}</span>
                             <AnimatedNumber value={`${Math.round(progress)}%`} className="flex" />
                         </div>
                         <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden relative">
@@ -711,7 +705,7 @@ export default function Dashboard() {
 
                     <Button variant="outline" disabled={isLoading} className="w-full text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 border-red-200 dark:border-red-800 disabled:opacity-50" onClick={handleClearCheckIn}>
                         {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <LogOut className="w-4 h-4 mr-2" />}
-                        {isLoading ? 'Processing...' : 'Cancel / Reset Check-in'}
+                        {isLoading ? t('processing') : t('cancelReset')}
                     </Button>
                 </div>
             )}
@@ -720,18 +714,18 @@ export default function Dashboard() {
                 <Dialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen}>
                     <DialogContent className="!bg-white dark:!bg-slate-950 text-slate-900 dark:text-slate-50 border-slate-200 dark:border-slate-800 sm:max-w-md z-[100] shadow-2xl">
                         <DialogHeader>
-                            <DialogTitle>Sign Out</DialogTitle>
+                            <DialogTitle>{t('signOut')}</DialogTitle>
                             <DialogDescription>
-                                Are you sure you want to sign out? You will need to re-verify via email next time.
+                                {t('confirmSignOutDesc')}
                             </DialogDescription>
                         </DialogHeader>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setLogoutConfirmOpen(false)} disabled={isLoading}>
-                                Cancel
+                                {t('cancel')}
                             </Button>
                             <Button onClick={handleLogout} disabled={isLoading} className="bg-red-600 hover:bg-red-700 text-white">
                                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <LogOut className="w-4 h-4 mr-2" />}
-                                Sign Out
+                                {t('signOut')}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -741,18 +735,18 @@ export default function Dashboard() {
                 <Dialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
                     <DialogContent className="!bg-white dark:!bg-slate-950 text-slate-900 dark:text-slate-50 border-slate-200 dark:border-slate-800 sm:max-w-md z-[100] shadow-2xl">
                         <DialogHeader>
-                            <DialogTitle>Cancel / Reset Check-in</DialogTitle>
+                            <DialogTitle>{t('cancelReset')}</DialogTitle>
                             <DialogDescription>
-                                Are you sure? This will delete the record from Google Sheets.
+                                {t('deleteRecordDesc')}
                             </DialogDescription>
                         </DialogHeader>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setResetConfirmOpen(false)} disabled={isLoading}>
-                                Cancel
+                                {t('cancel')}
                             </Button>
                             <Button onClick={confirmClearCheckIn} disabled={isLoading} className="bg-red-600 hover:bg-red-700 text-white">
                                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <AlertTriangle className="w-4 h-4 mr-2" />}
-                                Delete Record
+                                {t('deleteRecord')}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -762,9 +756,9 @@ export default function Dashboard() {
                 <div className="mt-8 p-4 rounded-xl border border-amber-200/50 bg-amber-50/80 dark:bg-amber-950/20 dark:border-amber-800/30 flex gap-3 items-start animate-in fade-in slide-in-from-bottom-2 duration-700 delay-200">
                     <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
                     <div className="text-sm text-amber-900 dark:text-amber-200/90">
-                        <p className="font-semibold mb-1 text-amber-950 dark:text-amber-100">Disclaimer</p>
+                        <p className="font-semibold mb-1 text-amber-950 dark:text-amber-100">{t('disclaimerTitle')}</p>
                         <p className="leading-relaxed opacity-90">
-                           This is a personal efficiency tool, <strong>not an official HR platform</strong>. It <strong>does not sync with company attendance records</strong>, so you are <strong>still required</strong> to perform your official manual check-in.
+                           <span dangerouslySetInnerHTML={{ __html: t('disclaimerText') }} />
                         </p>
                     </div>
                 </div>

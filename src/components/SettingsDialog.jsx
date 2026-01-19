@@ -22,8 +22,13 @@ import { getUserPreferences, updateUserPreferences } from '../services/googleShe
 import { toast } from 'sonner';
 import { Loader2, Bell } from 'lucide-react';
 import { format } from 'date-fns';
+import { getTranslation } from '../utils/translations';
+import { useLanguage } from '../hooks/useLanguage';
 
 const SettingsDialog = ({ open, onOpenChange, email }) => {
+  const { language } = useLanguage();
+  const t = (key) => getTranslation(key, language);
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
@@ -56,7 +61,7 @@ const SettingsDialog = ({ open, onOpenChange, email }) => {
         }
     } catch (e) {
         console.error("Failed to load settings", e);
-        toast.error("Failed to load settings. Please try again.");
+        toast.error(t('error')); 
     } finally {
         setLoading(false);
     }
@@ -67,11 +72,11 @@ const SettingsDialog = ({ open, onOpenChange, email }) => {
     console.log("Saving preferences:", { email, enabled, timeSlot }); // DEBUG LOG
     try {
         await updateUserPreferences(email, enabled, timeSlot);
-        toast.success("Settings saved successfully");
+        toast.success(t('savedToCloud'));
         onOpenChange(false);
     } catch (e) {
         console.error("Failed to save settings", e);
-        toast.error("Failed to save settings");
+        toast.error(t('error'));
     } finally {
         setSaving(false);
     }
@@ -82,10 +87,10 @@ const SettingsDialog = ({ open, onOpenChange, email }) => {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Bell className="w-5 h-5" /> Settings
+            <Bell className="w-5 h-5" /> {t('settingsTitle')}
           </DialogTitle>
           <DialogDescription>
-            Manage your daily attendance reminders.
+            {t('settingsDesc')}
           </DialogDescription>
         </DialogHeader>
 
@@ -97,21 +102,21 @@ const SettingsDialog = ({ open, onOpenChange, email }) => {
             <div className="grid gap-6 py-4">
                 <div className="flex items-center justify-between space-x-2">
                     <div className="flex flex-col space-y-1">
-                        <Label htmlFor="reminder-mode" className="font-medium text-base">Daily Check-in Reminder</Label>
-                        <span className="text-sm text-muted-foreground">Receive a Teams notification to check in.</span>
+                        <Label htmlFor="reminder-mode" className="font-medium text-base">{t('dailyReminder')}</Label>
+                        <span className="text-sm text-muted-foreground">{t('receiveReminders')}</span>
                     </div>
                     <Switch 
                         id="reminder-mode" 
                         checked={enabled}
                         onCheckedChange={(val) => {
-                            console.log("Switch toggled to:", val); // DEBUG LOG
+                            console.log("Switch toggled to:", val);
                             setEnabled(val);
                         }}
                     />
                 </div>
 
                 <div className="flex items-center justify-between space-x-2">
-                    <Label htmlFor="time-slot" className="font-medium">Reminder Time (Mon-Fri)</Label>
+                    <Label htmlFor="time-slot" className="font-medium">{t('reminderTime')}</Label>
                     <Select 
                         value={timeSlot} 
                         onValueChange={(val) => {
@@ -120,7 +125,7 @@ const SettingsDialog = ({ open, onOpenChange, email }) => {
                         }}
                     >
                         <SelectTrigger className="w-[140px]">
-                            <SelectValue placeholder="Select time" />
+                            <SelectValue placeholder={t('selectTime')} />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="8">8:00 AM</SelectItem>
@@ -136,19 +141,19 @@ const SettingsDialog = ({ open, onOpenChange, email }) => {
             <div className="px-1 pb-2">
                 <p className="text-[10px] text-muted-foreground text-center">
                     {lastSaved 
-                        ? `Last saved: ${format(new Date(lastSaved), "MMM d, yyyy 'at' h:mm a")}` 
-                        : "Settings not saved yet"}
+                        ? `${t('savedToCloud')}: ${format(new Date(lastSaved), "MMM d, yyyy 'at' h:mm a")}` 
+                        : ""}
                 </p>
             </div>
         )}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-            Cancel
+            {t('cancel')}
           </Button>
           <Button onClick={handleSave} disabled={loading || saving}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save Changes
+            {t('save')}
           </Button>
         </DialogFooter>
       </DialogContent>

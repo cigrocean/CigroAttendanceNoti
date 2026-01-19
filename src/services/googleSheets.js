@@ -182,7 +182,7 @@ export const fetchAuthorizedNetworks = async () => {
     if (!data.values || data.values.length <= 1) return []; // Header only
 
     // Return simple array of IPs (skip header)
-    const networks = data.values.slice(1).map(row => row[0]).filter(ip => ip);
+    const networks = data.values.slice(1).map(row => row[0]?.trim()).filter(ip => ip);
     
     // Save to cache
     saveToCache(CACHE_KEYS.NETWORKS, networks);
@@ -224,8 +224,17 @@ export const authorizeNetwork = async (ip) => {
     
     console.log(`✅ Authorized IP: ${ip}`);
     
-    // Clear cache immediately so the next check fetches the updated list
-    localStorage.removeItem(CACHE_KEYS.NETWORKS);
+    // Optimistic Cache Update: Verify locally to prevent stale read affecting user
+    // We fetch current cache, add new IP, and save it.
+    let currentCache = getFromCache(CACHE_KEYS.NETWORKS) || [];
+    if (!currentCache.includes(ip)) {
+        currentCache.push(ip);
+        saveToCache(CACHE_KEYS.NETWORKS, currentCache);
+        console.log("📦 Cache optimistically updated with new IP");
+    } else {
+        // Redundant but safe
+        localStorage.removeItem(CACHE_KEYS.NETWORKS); 
+    }
     
     return true;
   } catch (e) {
