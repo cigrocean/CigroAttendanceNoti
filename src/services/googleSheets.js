@@ -380,7 +380,9 @@ export const getTodayAttendance = async (email, skipCache = false) => {
         const data = await response.json();
         if (!data.values || data.values.length <= 1) return null;
         
-        const entry = data.values.find(row => row[0] === email && row[2] === todayStr);
+        // Find the LATEST entry (reverse search) to handle cases where Reset failed to delete old row
+        // and user checked in again. We want the correction.
+        const entry = data.values.reverse().find(row => row[0] === email && row[2] === todayStr);
         
         if (entry) {
             const attendanceDate = new Date(entry[1]);

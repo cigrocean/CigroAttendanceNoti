@@ -28,7 +28,7 @@ const AnimatedNumber = ({ value, className }) => (
     {value.toString().split('').map((char, i) => (
       <span 
         key={`${i}-${char}`} 
-        className="inline-block animate-blur-in will-change-transform"
+        className="inline-block animate-blur-in will-change-transform shrink-0"
       >
         {char}
       </span>
@@ -312,11 +312,21 @@ export default function Dashboard() {
   
   // Calculate progress %
   let progress = 0;
-  if (start && progress100) {
-      const total = progress100 - start;
+  if (start && endTime) {
+      const total = endTime.getTime() - start;
       const current = now - start;
-      progress = Math.min(100, Math.max(0, (current / total) * 100));
+      // Standard progress over the full duration (9h)
+      const percent = (current / total) * 100;
+      progress = Math.min(100, Math.max(0, percent));
   }
+
+  // ... (lines 321-347 skipped) ... can't skip in replace, but I will target the specific block I want to change.
+  // Actually I should make two separate replace calls or one large block?
+  // The tool says "Use multi_replace_file_content" if non-contiguous.
+  // But wait, the Prompt says "Do NOT make multiple parallel calls to this tool or the replace_file_content tool".
+
+  // I will use multi_replace_file_content since I need to touch line ~314 (progress) AND line ~704 (countdown).
+
 
   // Auto-Notification Effect
   useEffect(() => {
@@ -701,7 +711,24 @@ export default function Dashboard() {
                     <div className="space-y-2">
                         <div className="flex justify-between text-xs font-medium text-muted-foreground">
                             <span>{t('progress')}</span>
-                            <AnimatedNumber value={`${Math.round(progress)}%`} className="flex" />
+                            <div className="flex items-center gap-2 whitespace-nowrap overflow-visible">
+                                <AnimatedNumber 
+                                    value={(() => {
+                                        if (!endTime) return "00:00:00";
+                                        const diff = endTime.getTime() - currentTime.getTime();
+                                        if (diff <= 0) return "00:00:00";
+                                        const h = Math.floor(diff / 3600000);
+                                        const m = Math.floor((diff % 3600000) / 60000);
+                                        const s = Math.floor((diff % 60000) / 1000);
+                                        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                                    })()}
+                                    className="flex font-mono text-blue-600 dark:text-blue-400 font-bold"
+                                />
+                                <span className="opacity-30">|</span>
+                                <div title={`Started: ${checkInTime ? format(checkInTime, 'HH:mm') : '--'} • Ends: ${endTime ? format(endTime, 'HH:mm') : '--'}`}>
+                                    <AnimatedNumber value={`${Math.round(progress)}%`} className="flex" />
+                                </div>
+                            </div>
                         </div>
                         <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden relative">
                              {/* Glossy Shimmer Logic */}
