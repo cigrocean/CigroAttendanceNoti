@@ -140,7 +140,7 @@ export default function Dashboard() {
 
   const handleLogin = async () => {
     if (!emailPrefix.trim()) return;
-    const fullEmail = `${emailPrefix.trim()}${emailDomain}`;
+    const fullEmail = `${emailPrefix.trim().toLowerCase()}${emailDomain}`;
     const webhookUrl = import.meta.env.VITE_MS_FLOW_WEBHOOK;
     
     setIsLoading(true);
