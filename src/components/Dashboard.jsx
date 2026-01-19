@@ -151,7 +151,7 @@ export default function Dashboard() {
             try {
                 const response = await fetch(webhookUrl, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' }, // Proxied
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         email: fullEmail,
                         type: 'validate-user' 
@@ -223,7 +223,7 @@ export default function Dashboard() {
     try {
         await fetch(webhookUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 email: email, 
                 checkInTime: date.toISOString(),
