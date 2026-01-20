@@ -118,16 +118,24 @@ export default function AdminDashboard() {
                         .filter(row => 
                             (row.email && row.email.toLowerCase().includes(searchQuery.toLowerCase()))
                         )
-                        .map((row, i) => (
-                        <tr key={i} className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                            <td className="p-4 align-middle font-medium">{row.email}</td>
-                            <td className="p-4 align-middle">{row.checkInTime ? format(parseISO(row.checkInTime), 'HH:mm:ss') : '-'}</td>
-                            <td className="p-4 align-middle text-muted-foreground">
-                                {row.checkInTime ? format(addHours(parseISO(row.checkInTime), 9), 'HH:mm:ss') : '-'}
-                            </td>
-                            <td className="p-4 align-middle">{row.dateStr}</td>
-                        </tr>
-                        ))
+                        .map((row, i) => {
+                            const currentUser = localStorage.getItem('cigr_email');
+                            const isCurrentUser = currentUser && row.email && row.email.toLowerCase() === currentUser.toLowerCase();
+                            
+                            return (
+                                <tr key={i} className={`border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted ${isCurrentUser ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
+                                    <td className="p-4 align-middle font-medium">
+                                        {row.email}
+                                        {isCurrentUser && <span className="ml-2 text-[10px] bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-300 px-1.5 py-0.5 rounded-full">YOU</span>}
+                                    </td>
+                                    <td className="p-4 align-middle">{row.checkInTime ? format(parseISO(row.checkInTime), 'HH:mm:ss') : '-'}</td>
+                                    <td className="p-4 align-middle text-muted-foreground">
+                                        {row.checkInTime ? format(addHours(parseISO(row.checkInTime), 9), 'HH:mm:ss') : '-'}
+                                    </td>
+                                    <td className="p-4 align-middle">{row.dateStr}</td>
+                                </tr>
+                            );
+                        })
                     )}
                   </tbody>
                 </table>
@@ -138,9 +146,7 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
       
-      <div className="mt-8 text-center text-sm text-muted-foreground">
-         Secure · Powered by Google Sheets
-      </div>
+
     </div>
   );
 }
