@@ -13,14 +13,15 @@ export default function PWAInstallGuide() {
     const [deferredPrompt, setDeferredPrompt] = useState(null);
     const [isIOS, setIsIOS] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
+    const [isDismissed, setIsDismissed] = useState(false);
 
     useEffect(() => {
         // 1. Android / Desktop Support
         const handleBeforeInstallPrompt = (e) => {
             e.preventDefault();
             setDeferredPrompt(e);
-            // Only show if not already installed
-            if (!window.matchMedia('(display-mode: standalone)').matches) {
+            // Only show if not installed and not dismissed
+            if (!window.matchMedia('(display-mode: standalone)').matches && !isDismissed) {
                 setIsVisible(true);
             }
         };
@@ -32,27 +33,26 @@ export default function PWAInstallGuide() {
         const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
         const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
 
-        if (isIosDevice && !isStandalone) {
+        if (isIosDevice && !isStandalone && !isDismissed) {
             setIsIOS(true);
-            setIsVisible(true); // Always show for iOS if not installed
+            setIsVisible(true);
         }
 
         return () => {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
         };
-    }, []);
+    }, [isDismissed]);
 
     useEffect(() => {
         // 3. Universal Fallback
         // Always show guide if not installed (even if prompt event is delayed/blocked)
-        if (!window.matchMedia('(display-mode: standalone)').matches) {
+        if (!isDismissed && !window.matchMedia('(display-mode: standalone)').matches) {
             const timer = setTimeout(() => {
-                // If it hasn't shown up yet (e.g. via event), force it
                 if (!isVisible) setIsVisible(true);
             }, 1000); 
             return () => clearTimeout(timer);
         }
-    }, [isVisible]);
+    }, [isDismissed]); // Removed isVisible from dependency to avoid loop
 
     const handleInstallClick = async () => {
         if (!deferredPrompt) return;
@@ -62,9 +62,17 @@ export default function PWAInstallGuide() {
         
         if (outcome === 'accepted') {
             setIsVisible(false);
+            setIsDismissed(true);
         }
         setDeferredPrompt(null);
     };
+
+    const handleDismiss = () => {
+        setIsVisible(false);
+        setIsDismissed(true);
+    };
+
+    if (!isVisible || isDismissed) return null;
 
     if (!isVisible) return null;
 
@@ -75,7 +83,7 @@ export default function PWAInstallGuide() {
                     variant="ghost" 
                     size="icon" 
                     className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-foreground"
-                    onClick={() => setIsVisible(false)}
+                    onClick={handleDismiss}
                 >
                     <X className="w-4 h-4" />
                 </Button>
