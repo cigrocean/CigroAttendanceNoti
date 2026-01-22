@@ -13,9 +13,7 @@ export default function PWAInstallGuide() {
     const [deferredPrompt, setDeferredPrompt] = useState(null);
     const [isIOS, setIsIOS] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
-    const [isDismissed, setIsDismissed] = useState(() => {
-        return localStorage.getItem('pwa_install_dismissed') === 'true';
-    });
+    const [isDismissed, setIsDismissed] = useState(false);
 
     useEffect(() => {
         // 1. Android / Desktop Support
@@ -66,9 +64,7 @@ export default function PWAInstallGuide() {
         const { outcome } = await deferredPrompt.userChoice;
         
         if (outcome === 'accepted') {
-            setIsVisible(false);
             setIsDismissed(true);
-            localStorage.setItem('pwa_install_dismissed', 'true');
         }
         setDeferredPrompt(null);
     };
@@ -76,7 +72,6 @@ export default function PWAInstallGuide() {
     const handleDismiss = () => {
         setIsVisible(false);
         setIsDismissed(true);
-        localStorage.setItem('pwa_install_dismissed', 'true');
     };
 
     if (!isVisible || isDismissed) return null;
@@ -127,13 +122,9 @@ export default function PWAInstallGuide() {
                                 </div>
                             </div>
                         ) : (
-                            <Button 
-                                size="sm" 
-                                onClick={handleInstallClick} 
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white mt-1"
-                            >
-                                {t('installApp')}
-                            </Button>
+                            <div className="text-xs bg-muted/50 p-3 rounded border border-border mt-2 text-foreground/80">
+                                {t('androidGuide')}
+                            </div>
                         )}
                     </div>
                 </div>
