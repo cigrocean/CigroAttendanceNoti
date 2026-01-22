@@ -13,7 +13,9 @@ export default function PWAInstallGuide() {
     const [deferredPrompt, setDeferredPrompt] = useState(null);
     const [isIOS, setIsIOS] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
-    const [isDismissed, setIsDismissed] = useState(false);
+    const [isDismissed, setIsDismissed] = useState(() => {
+        return localStorage.getItem('pwa_install_dismissed') === 'true';
+    });
 
     useEffect(() => {
         // 1. Android / Desktop Support
@@ -52,10 +54,13 @@ export default function PWAInstallGuide() {
             }, 1000); 
             return () => clearTimeout(timer);
         }
-    }, [isDismissed]); // Removed isVisible from dependency to avoid loop
+    }, [isDismissed]);
 
     const handleInstallClick = async () => {
-        if (!deferredPrompt) return;
+        if (!deferredPrompt) {
+            toast.info("Browser install prompt not available. (This is expected in Dev mode or if already installed)");
+            return;
+        }
 
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
@@ -63,6 +68,7 @@ export default function PWAInstallGuide() {
         if (outcome === 'accepted') {
             setIsVisible(false);
             setIsDismissed(true);
+            localStorage.setItem('pwa_install_dismissed', 'true');
         }
         setDeferredPrompt(null);
     };
@@ -70,6 +76,7 @@ export default function PWAInstallGuide() {
     const handleDismiss = () => {
         setIsVisible(false);
         setIsDismissed(true);
+        localStorage.setItem('pwa_install_dismissed', 'true');
     };
 
     if (!isVisible || isDismissed) return null;
@@ -119,7 +126,7 @@ export default function PWAInstallGuide() {
                                     </div>
                                 </div>
                             </div>
-                        ) : deferredPrompt ? (
+                        ) : (
                             <Button 
                                 size="sm" 
                                 onClick={handleInstallClick} 
@@ -127,10 +134,6 @@ export default function PWAInstallGuide() {
                             >
                                 {t('installApp')}
                             </Button>
-                        ) : (
-                            <div className="text-xs bg-muted/50 p-3 rounded border border-border mt-2 text-foreground/80">
-                                {t('androidGuide')}
-                            </div>
                         )}
                     </div>
                 </div>
