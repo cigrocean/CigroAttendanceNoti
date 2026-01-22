@@ -43,21 +43,19 @@ export default function PWAInstallGuide() {
     }, []);
 
     useEffect(() => {
-        // 3. Dev Mode / Desktop Manual Fallback
-        // If it's dev mode AND not mobile AND not standalone, show it anyway so user can see UI
-        if (import.meta.env.DEV && !window.matchMedia('(display-mode: standalone)').matches) {
+        // 3. Universal Fallback
+        // Always show guide if not installed (even if prompt event is delayed/blocked)
+        if (!window.matchMedia('(display-mode: standalone)').matches) {
             const timer = setTimeout(() => {
-                if (!deferredPrompt) setIsVisible(true);
-            }, 2000);
+                // If it hasn't shown up yet (e.g. via event), force it
+                if (!isVisible) setIsVisible(true);
+            }, 1000); 
             return () => clearTimeout(timer);
         }
-    }, [deferredPrompt]);
+    }, [isVisible]);
 
     const handleInstallClick = async () => {
-        if (!deferredPrompt) {
-            toast.info("Browser install prompt not available. (This is expected in Dev mode if the browser didn't trigger the event)");
-            return;
-        }
+        if (!deferredPrompt) return;
 
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
@@ -113,7 +111,7 @@ export default function PWAInstallGuide() {
                                     </div>
                                 </div>
                             </div>
-                        ) : (
+                        ) : deferredPrompt ? (
                             <Button 
                                 size="sm" 
                                 onClick={handleInstallClick} 
@@ -121,6 +119,10 @@ export default function PWAInstallGuide() {
                             >
                                 {t('installApp')}
                             </Button>
+                        ) : (
+                            <div className="text-xs bg-muted/50 p-3 rounded border border-border mt-2 text-foreground/80">
+                                {t('androidGuide')}
+                            </div>
                         )}
                     </div>
                 </div>
