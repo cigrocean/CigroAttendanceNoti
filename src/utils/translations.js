@@ -148,6 +148,16 @@ export const translations = {
     language: "Language",
     english: "English",
     vietnamese: "Vietnamese",
+    
+    // PWA
+    installApp: "Install App",
+    installGuideTitle: "Install for easier access",
+    installApp: "Install App",
+    installGuideTitle: "Install for easier access",
+    installExplanation: "Add to home screen for a better native-like experience.",
+    iosShare: "Tap 'Share'",
+    iosAdd: "Add to Home Screen",
+    androidGuide: "Tap the menu and select 'Install App'",
   },
   vi: {
     // Generics
@@ -298,6 +308,16 @@ export const translations = {
     language: "Ngôn ngữ",
     english: "Tiếng Anh",
     vietnamese: "Tiếng Việt",
+
+    // PWA
+    installApp: "Cài đặt ứng dụng",
+    installGuideTitle: "Cài đặt để truy cập nhanh hơn",
+    installApp: "Cài đặt ứng dụng",
+    installGuideTitle: "Cài đặt để truy cập nhanh hơn",
+    installExplanation: "Thêm ứng dụng vào màn hình chính để sử dụng mượt mà hơn như app native.",
+    iosShare: "Nhấn 'Chia sẻ'",
+    iosAdd: "Thêm vào MH chính", // "MH chính" is shorter for "Màn hình chính"
+    androidGuide: "Nhấn vào menu và chọn 'Cài đặt ứng dụng'",
   }
 };
 

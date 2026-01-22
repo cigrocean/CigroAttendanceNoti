@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import SettingsDialog from '@/components/SettingsDialog';
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from '@/hooks/useLanguage';
+import PWAInstallGuide from '@/components/PWAInstallGuide';
 
 const OFFICE_START_LIMIT = 10; // 10 AM
 const OFFICE_END_LIMIT = 19; // 7 PM
@@ -812,6 +813,8 @@ export default function Dashboard() {
         onOpenChange={setIsSettingsOpen} 
         email={email} 
       />
+      
+      <PWAInstallGuide />
     </div>
     </div>
   );
