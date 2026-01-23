@@ -89,12 +89,25 @@ const NetworkGuard = ({ children }) => {
        console.log('Network Check - Current IP:', ip);
 
        try {
-         const authorizedOps = await fetchAuthorizedNetworks();
+         // Attempt 1: Try with potential cache
+         let authorizedOps = await fetchAuthorizedNetworks();
+         
          if (authorizedOps.includes(ip)) {
              setStatus('authorized');
              return;
          } else {
-             console.warn("IP mismatch. Your IP is not in the authorized list. Clearing cache.");
+             // Attempt 2: If failed, try FRESH fetch (bypass cache) before denying
+             console.log("IP lookup failed in potential cache. Retrying with fresh fetch...");
+             authorizedOps = await fetchAuthorizedNetworks(true); // skipCache = true
+
+             if (authorizedOps.includes(ip)) {
+                 console.log("IP found in fresh list!");
+                 setStatus('authorized');
+                 return;
+             }
+
+             // If still failing, then it's truly unauthorized
+             console.warn("IP mismatch after fresh fetch. Your IP is not in the authorized list. Clearing cache.");
              localStorage.removeItem('cigro_networks');
          }
        } catch (netErr) {

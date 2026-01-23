@@ -149,12 +149,14 @@ const ensureNetworksSheet = async (accessToken) => {
   }
 };
 
-export const fetchAuthorizedNetworks = async () => {
+export const fetchAuthorizedNetworks = async (skipCache = false) => {
   // Try cache first
-  const cached = getFromCache(CACHE_KEYS.NETWORKS);
-  if (cached) {
-    console.log('📦 Using cached networks');
-    return cached;
+  if (!skipCache) {
+    const cached = getFromCache(CACHE_KEYS.NETWORKS);
+    if (cached) {
+      console.log('📦 Using cached networks');
+      return cached;
+    }
   }
 
   try {
